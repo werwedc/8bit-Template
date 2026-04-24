@@ -56,9 +56,8 @@ async function main(): Promise<void> {
   const storage = new StorageManager('gamejam_');
   const storedRenderMode = storage.load<'retro' | 'native' | 'native-res'>('settings_resolution', RENDER_MODE);
 
-  if (storedRenderMode === 'native-res') {
-    matchDeviceResolution(RESOLUTION);
-  }
+  // DO NOT mutate RESOLUTION here. We want Viewport to snapshot the pristine 
+  // logical design size (320x180). We will hot-swap the mode after Viewport is created.
 
   const app = await createPixiApp(storedRenderMode);
 
@@ -87,7 +86,11 @@ async function main(): Promise<void> {
     e.preventDefault();
   });
 
+  // Initialize with the original RENDER_MODE constant so Viewport snapshots 320x180
   const viewport = new Viewport(app, RESOLUTION, RENDER_MODE);
+  // Then immediately switch to the stored mode, which correctly mutates RESOLUTION
+  // if needed, while preserving the _baseResolution safely inside Viewport.
+  viewport.setRenderMode(storedRenderMode);
   const camera = new Camera(viewport.world);
   const input = new InputManager();
   const audio = new AudioManager();

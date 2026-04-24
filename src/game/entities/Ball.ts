@@ -13,7 +13,7 @@ export class Ball extends Entity {
   public row: number;
   public dirCol: number;
   public dirRow: number;
-  
+
   private grid: GridManager<number>;
 
   constructor(grid: GridManager<number>, startCol: number, startRow: number) {
@@ -30,7 +30,7 @@ export class Ball extends Entity {
     // Fill exactly one cell
     gfx.rect(0, 0, this.grid.cellSize, this.grid.cellSize).fill({ color: PALETTE.accent });
     this.view.addChild(gfx);
-    
+
     this.updatePosition();
   }
 

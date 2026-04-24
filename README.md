@@ -226,3 +226,15 @@ npm test          # Vitest unit tests
 | [TypeScript](https://www.typescriptlang.org) | ^5 | Type safety |
 | [Biome](https://biomejs.dev) | ^1.8 | Lint + format (single tool) |
 | [Vitest](https://vitest.dev) | ^1.6 | Unit tests |
+
+---
+
+## ⚠️ Important Implementation Notes
+
+### 1. Dynamic UI & Storage Synchronization
+When using the `StorageManager` to track game state (like player scores), always remember to update your UI layer dynamically! **Retrieving scores only during `scene.enter()` is a common pitfall** that leads to "ghost scores", where the `StorageManager` accurately updates the variables in the background, but the UI displays `0:0`. Make sure to call `this.ctx.ui.setText(...)` immediately whenever the underlying variable changes.
+
+### 2. Native-Res Hot-Swapping vs Booting
+The `native-res` render mode achieves a true 1:1 screen mapping by explicitly overwriting the global `RESOLUTION` object. 
+**Crucial Warning:** Never manually overwrite the `RESOLUTION` object before instantiating the `Viewport` (e.g. at the top of `main.ts`). If you do this, the `Viewport` will permanently snapshot the huge device dimensions as its base logical size, breaking scaling logic completely. 
+Instead, always initialize the `Viewport` safely using your constant `RENDER_MODE`, and *then* call `viewport.setRenderMode('native-res')` to safely hot-swap the math internally!

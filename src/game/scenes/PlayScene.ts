@@ -83,7 +83,7 @@ export class PlayScene extends Scene {
     const { input } = this.ctx;
     if (input.isDown('KeyW')) this.p1.move(-1);
     else if (input.isDown('KeyS')) this.p1.move(1);
-    
+
     if (input.isDown('ArrowUp')) this.p2.move(-1);
     else if (input.isDown('ArrowDown')) this.p2.move(1);
 
@@ -124,10 +124,12 @@ export class PlayScene extends Scene {
     if (this.ball.col < 0) {
       this.p2score++;
       this.ctx.storage.save('current_match_p2', this.p2score);
+      this.ctx.ui.setText('#hud-score', `${this.p1score} : ${this.p2score}`);
       this._onScore('P2');
     } else if (this.ball.col >= this.grid.cols) {
       this.p1score++;
       this.ctx.storage.save('current_match_p1', this.p1score);
+      this.ctx.ui.setText('#hud-score', `${this.p1score} : ${this.p2score}`);
       this._onScore('P1');
     }
   }
