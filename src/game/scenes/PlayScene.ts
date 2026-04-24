@@ -6,6 +6,7 @@ import { Ball } from '../entities/Ball';
 import { Paddle } from '../entities/Paddle';
 import { GAME, PALETTE, RESOLUTION } from '../config';
 import { MenuScene } from './MenuScene';
+import { checkAABB } from '../../core/physics';
 
 type GameState = 'playing' | 'countdown' | 'gameover';
 
@@ -138,13 +139,11 @@ export class PlayScene extends Scene {
   }
 
   private _ballHitsPaddle(paddle: Paddle): boolean {
-    const half = this.ball.halfSize;
+    const size = this.ball.halfSize * 2;
     const b = paddle.bounds;
-    return (
-      this.ball.x + half > b.x &&
-      this.ball.x - half < b.x + b.w &&
-      this.ball.y + half > b.y &&
-      this.ball.y - half < b.y + b.h
+    return checkAABB(
+      this.ball.x - this.ball.halfSize, this.ball.y - this.ball.halfSize, size, size,
+      b.x, b.y, b.w, b.h
     );
   }
 

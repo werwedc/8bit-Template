@@ -5,6 +5,7 @@
 import { Graphics } from 'pixi.js';
 import { Entity } from '../../core/entity';
 import { GAME, PALETTE } from '../config';
+import { randomElement, randomFloat } from '../../core/physics';
 
 export class Ball extends Entity {
   vx: number;
@@ -18,8 +19,8 @@ export class Ball extends Entity {
 
     this._speed = GAME.ballInitialSpeed * scale;
     // Randomise initial horizontal direction; slight random vertical angle
-    this.vx = this._speed * (Math.random() > 0.5 ? 1 : -1);
-    this.vy = this._speed * (Math.random() * 0.4 - 0.2); // ±20% Y component
+    this.vx = this._speed * randomElement([1, -1]);
+    this.vy = this._speed * randomFloat(-0.2, 0.2); // ±20% Y component
 
     const size = GAME.ballSize * scale;
     const gfx = new Graphics();

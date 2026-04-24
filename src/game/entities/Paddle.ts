@@ -8,6 +8,7 @@
 import { Graphics } from 'pixi.js';
 import { Entity } from '../../core/entity';
 import { GAME, RESOLUTION } from '../config';
+import { clamp } from '../../core/physics';
 
 export class Paddle extends Entity {
   /** Current logical y position (top-left of paddle). */
@@ -48,7 +49,7 @@ export class Paddle extends Entity {
     if (up) this.y -= this.speed * dt;
     if (down) this.y += this.speed * dt;
 
-    this.y = Math.max(0, Math.min(RESOLUTION.h - this.h, this.y));
+    this.y = clamp(this.y, 0, RESOLUTION.h - this.h);
     this.view.y = this.y;
   }
 
