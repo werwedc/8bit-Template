@@ -10,6 +10,7 @@ export function registerUILayers(ui: UIManager): void {
         <span>P1: W / S</span>
         <span>P2: &uarr; / &darr;</span>
       </div>
+      <button class="menu-btn" id="settings-btn" style="padding: 6px 20px; font-size: 14px;">SETTINGS</button>
       <div id="menu-score" style="margin-top: 20px; font-size: 0.8em; opacity: 0.7; text-align: center;"></div>
     </div>`,
   );

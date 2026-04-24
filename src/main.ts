@@ -41,6 +41,7 @@ import {
 } from './game/config';
 import { BootScene } from './game/scenes/BootScene';
 import { registerUILayers } from './game/ui-layers';
+import { SettingsMenu } from './core/settings-ui';
 import * as timer from './core/timer';
 
 // ── Pixel-perfect layer 1: nearest-neighbour scaling BEFORE any Assets.load ──
@@ -52,18 +53,21 @@ async function main(): Promise<void> {
   // 'native-res' overwrites RESOLUTION to the device's physical pixel size
   // BEFORE any scene or entity reads it. RESOLUTION is a shared mutable object,
   // so every import in the game layer sees the updated dimensions automatically.
-  if (RENDER_MODE === 'native-res') {
+  const storage = new StorageManager('gamejam_');
+  const storedRenderMode = storage.load<'retro' | 'native' | 'native-res'>('settings_resolution', RENDER_MODE);
+
+  if (storedRenderMode === 'native-res') {
     matchDeviceResolution(RESOLUTION);
   }
 
-  const app = await createPixiApp(RENDER_MODE);
+  const app = await createPixiApp(storedRenderMode);
 
   // Set canvas image-rendering based on render mode.
   // 'pixelated' keeps the integer-upscaled RT crisp in retro mode.
   // 'auto' lets the browser use smooth scaling in native / native-res modes
   // (DPR-aware canvas; no integer upscale to preserve).
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
-  canvas.style.imageRendering = RENDER_MODE === 'retro' ? 'pixelated' : 'auto';
+  canvas.style.imageRendering = storedRenderMode === 'retro' ? 'pixelated' : 'auto';
   canvas.addEventListener('click', () => window.focus());
 
   // Log WebGL context loss so the specific sizes at failure are visible in
@@ -90,7 +94,6 @@ async function main(): Promise<void> {
   const assets = new AssetManager();
   const debug = new DebugOverlay(app);
   const ui = new UIManager();
-  const storage = new StorageManager('gamejam_');
 
   window.focus();
 
@@ -104,7 +107,8 @@ async function main(): Promise<void> {
   // ── Retro filter stack (see core/filters.ts for tuning options) ────────────
   // Presets are defined in game/config.ts. Press F1 at runtime to cycle them
   // (handy if the bloom/CRT softness reads as blur over your pixel art).
-  let presetIndex = DEFAULT_FILTER_PRESET % FILTER_PRESETS.length;
+  // Apply startup filter from storage
+  let presetIndex = storage.load('settings_graphics_index', DEFAULT_FILTER_PRESET % FILTER_PRESETS.length);
   const applyPreset = (i: number): void => {
     presetIndex = ((i % FILTER_PRESETS.length) + FILTER_PRESETS.length) % FILTER_PRESETS.length;
     const preset = FILTER_PRESETS[presetIndex]!;
@@ -113,6 +117,23 @@ async function main(): Promise<void> {
   };
   applyPreset(presetIndex);
   debug.setRenderMode(viewport.renderMode);
+
+  // Initialize Glassmorphism Settings Menu
+  const settingsMenu = new SettingsMenu(ctx, {
+    presets: FILTER_PRESETS.map(p => p.name),
+    onPresetChange: (index) => applyPreset(index),
+    onRenderModeChange: (mode) => {
+      viewport.setRenderMode(mode);
+      canvas.style.imageRendering = mode === 'retro' ? 'pixelated' : 'auto';
+      applyPreset(presetIndex); // Reapply filters after render target swap
+      debug.setRenderMode(mode);
+      // Re-enter scene to pick up potentially new RESOLUTION if we swapped to/from native-res
+      sceneManager.reenter();
+    }
+  });
+
+  // Wire up the new button in the Main Menu
+  ui.onClick('#settings-btn', () => settingsMenu.show());
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'F1') {
