@@ -32,8 +32,8 @@ export class PlayScene extends Scene {
   }
 
   enter(): void {
-    this.p1score = 0;
-    this.p2score = 0;
+    this.p1score = this.ctx.storage.load('current_match_p1', 0);
+    this.p2score = this.ctx.storage.load('current_match_p2', 0);
     this.state = 'playing';
     this.winner = '';
 
@@ -45,7 +45,7 @@ export class PlayScene extends Scene {
     this._spawnBall();
 
     this.ctx.ui.show('hud');
-    this.ctx.ui.setText('#hud-score', '0 : 0');
+    this.ctx.ui.setText('#hud-score', `${this.p1score} : ${this.p2score}`);
   }
 
   exit(): void {
@@ -99,9 +99,11 @@ export class PlayScene extends Scene {
 
     if (this.ball.x + half < 0) {
       this.p2score++;
+      this.ctx.storage.save('current_match_p2', this.p2score);
       this._onScore('P2');
     } else if (this.ball.x - half > this.W) {
       this.p1score++;
+      this.ctx.storage.save('current_match_p1', this.p1score);
       this._onScore('P1');
     }
 
@@ -189,6 +191,9 @@ export class PlayScene extends Scene {
 
     if (this.p1score >= GAME.scoreToWin || this.p2score >= GAME.scoreToWin) {
       this.winner = who;
+
+      this.ctx.storage.remove('current_match_p1');
+      this.ctx.storage.remove('current_match_p2');
 
       if (who === 'P1') {
         const p1Wins = this.ctx.storage.load('p1_wins', 0);
