@@ -30,8 +30,7 @@ import type { AssetManifestItem } from '../core/assets';
 export const ASSET_MANIFEST: AssetManifestItem[] = [
   // ── Sprites ──────────────────────────────────────────────────────────────
   // Uncomment and add your Aseprite exports here:
-  // { alias: 'ball',   src: '/assets/sprites/ball.json'   },
-  // { alias: 'paddle', src: '/assets/sprites/paddle.json' },
+  { alias: 'orb_rotate', src: '/assets/sprites/AXIALE_orbs/orb_rotate.png' },
 
   // ── Fonts ────────────────────────────────────────────────────────────────
   // Uncomment after dropping .fnt + .png into public/assets/fonts/:

@@ -48,8 +48,8 @@ export class PlayScene extends Scene {
     this.ctx.ui.show('hud');
     this.ctx.ui.setText('#hud-score', `${this.p1score} : ${this.p2score}`);
 
-    // Tick the discrete game loop every 50ms (20 Hz logic)
-    this.gameTickTimer = timer.every(0.05, () => this._tick());
+    // Tick the discrete game loop every 100ms (10 Hz logic)
+    this.gameTickTimer = timer.every(0.1, () => this._tick());
   }
 
   exit(): void {
@@ -73,6 +73,10 @@ export class PlayScene extends Scene {
         this._spawnBall();
       }
       return;
+    }
+
+    if (this.ball) {
+      this.ball.update(dt);
     }
   }
 
@@ -114,11 +118,16 @@ export class PlayScene extends Scene {
       nextCol = this.ball.col + this.ball.dirCol;
       const color = targetCell === 1 ? PALETTE.p1 : PALETTE.p2;
       this._onPaddleHit(this.ball.x, this.ball.y, color);
+      
+      // Trigger the spin animation once, then go back to idle
+      this.ball.animator.playOnce('spin', () => {
+        this.ball.animator.play('idle');
+      });
     }
 
     this.ball.col = nextCol;
     this.ball.row = nextRow;
-    this.ball.updatePosition();
+    // Removed hard updatePosition() snap to allow smooth lerp in update(dt)
 
     // 4. Score Logic
     if (this.ball.col < 0) {
