@@ -189,6 +189,15 @@ export class PlayScene extends Scene {
 
     if (this.p1score >= GAME.scoreToWin || this.p2score >= GAME.scoreToWin) {
       this.winner = who;
+
+      if (who === 'P1') {
+        const p1Wins = this.ctx.storage.load('p1_wins', 0);
+        this.ctx.storage.save('p1_wins', p1Wins + 1);
+      } else {
+        const p2Wins = this.ctx.storage.load('p2_wins', 0);
+        this.ctx.storage.save('p2_wins', p2Wins + 1);
+      }
+
       this._showGameOver();
       return;
     }

@@ -26,6 +26,11 @@ export class MenuScene extends Scene {
 
     this.ctx.ui.show('main-menu');
     this.ctx.ui.setText('#menu-title', TITLE);
+    
+    const p1Wins = this.ctx.storage.load('p1_wins', 0);
+    const p2Wins = this.ctx.storage.load('p2_wins', 0);
+    this.ctx.ui.setText('#menu-score', `TOTAL WINS - P1: ${p1Wins}  |  P2: ${p2Wins}`);
+
     this.ctx.ui.onClick('#play-btn', () => {
       this.ctx.sceneManager.transitionTo(PlayScene, undefined, true);
     });

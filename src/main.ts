@@ -29,6 +29,7 @@ import { SceneManager } from './core/scene';
 import { DebugOverlay } from './core/debug';
 import { UIManager } from './core/ui';
 import { Camera } from './core/camera';
+import { StorageManager } from './core/storage';
 import { gsap } from 'gsap';
 import { applyRetroFilters, updateFilters } from './core/filters';
 import type { AppContext } from './core/types';
@@ -89,12 +90,13 @@ async function main(): Promise<void> {
   const assets = new AssetManager();
   const debug = new DebugOverlay(app);
   const ui = new UIManager();
+  const storage = new StorageManager('gamejam_');
 
   window.focus();
 
   // Assemble the context passed to every Scene constructor.
   // sceneManager is assigned immediately after creation (two-step init).
-  const ctx = { app, viewport, camera, input, audio, assets, gsap, debug, ui } as AppContext;
+  const ctx = { app, viewport, camera, input, audio, assets, gsap, debug, ui, storage } as AppContext;
   const sceneManager = new SceneManager(ctx);
   ctx.sceneManager = sceneManager;
   registerUILayers(ui);
