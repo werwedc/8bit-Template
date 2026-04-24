@@ -1,0 +1,25 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* image-rendering is set dynamically in main.ts based on RENDER_MODE:
+ *   retro  → image-rendering: pixelated  (crisp integer-upscaled RT)
+ *   native → image-rendering: auto       (smooth DPR-aware canvas)
+ */
+#game-canvas {
+  display: block;
+}
