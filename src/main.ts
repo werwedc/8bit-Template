@@ -27,6 +27,7 @@ import { AudioManager } from './core/audio';
 import { AssetManager } from './core/assets';
 import { SceneManager } from './core/scene';
 import { DebugOverlay } from './core/debug';
+import { UIManager } from './core/ui';
 import { Camera } from './core/camera';
 import { gsap } from 'gsap';
 import { applyRetroFilters, updateFilters } from './core/filters';
@@ -38,6 +39,7 @@ import {
   RESOLUTION,
 } from './game/config';
 import { BootScene } from './game/scenes/BootScene';
+import { registerUILayers } from './game/ui-layers';
 
 // ── Pixel-perfect layer 1: nearest-neighbour scaling BEFORE any Assets.load ──
 // TextureSource.defaultOptions must be set before the Application initialises.
@@ -85,14 +87,16 @@ async function main(): Promise<void> {
   const audio = new AudioManager();
   const assets = new AssetManager();
   const debug = new DebugOverlay(app);
+  const ui = new UIManager();
 
   window.focus();
 
   // Assemble the context passed to every Scene constructor.
   // sceneManager is assigned immediately after creation (two-step init).
-  const ctx = { app, viewport, camera, input, audio, assets, gsap, debug } as AppContext;
+  const ctx = { app, viewport, camera, input, audio, assets, gsap, debug, ui } as AppContext;
   const sceneManager = new SceneManager(ctx);
   ctx.sceneManager = sceneManager;
+  registerUILayers(ui);
 
   // ── Retro filter stack (see core/filters.ts for tuning options) ────────────
   // Presets are defined in game/config.ts. Press F1 at runtime to cycle them

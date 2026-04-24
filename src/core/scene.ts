@@ -81,6 +81,7 @@ export class SceneManager {
       this.current.exit();
       this.ctx.viewport.world.removeChild(this.current.container);
     }
+    this.ctx.ui.hideAll();
 
     // Get or create scene instance
     if (noCache) this.cache.delete(SceneClass);

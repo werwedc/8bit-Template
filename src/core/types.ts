@@ -11,6 +11,7 @@ import type { AssetManager } from './assets';
 import type { DebugOverlay } from './debug';
 import type { InputManager } from './input';
 import type { SceneManager } from './scene';
+import type { UIManager } from './ui';
 import type { Viewport } from './viewport';
 import type { Camera } from './camera';
 
@@ -23,5 +24,6 @@ export interface AppContext {
   gsap: typeof import('gsap').gsap;
   camera: Camera;
   debug: DebugOverlay;
+  ui: UIManager;
   sceneManager: SceneManager;
 }
