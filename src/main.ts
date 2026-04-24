@@ -40,6 +40,7 @@ import {
 } from './game/config';
 import { BootScene } from './game/scenes/BootScene';
 import { registerUILayers } from './game/ui-layers';
+import * as timer from './core/timer';
 
 // ── Pixel-perfect layer 1: nearest-neighbour scaling BEFORE any Assets.load ──
 // TextureSource.defaultOptions must be set before the Application initialises.
@@ -157,6 +158,7 @@ async function main(): Promise<void> {
   app.ticker.add((ticker) => {
     const dt = ticker.deltaMS / 1000;
 
+    timer.update(dt);
     sceneManager.update(dt);
     camera.update(dt);
     viewport.render();
