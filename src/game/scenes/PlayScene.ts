@@ -6,7 +6,8 @@ import { Ball } from '../entities/Ball';
 import { Paddle } from '../entities/Paddle';
 import { GAME, PALETTE, RESOLUTION } from '../config';
 import { MenuScene } from './MenuScene';
-import { checkAABB } from '../../core/physics';
+import { GridManager } from '../../core/grid';
+import * as timer from '../../core/timer';
 
 type GameState = 'playing' | 'countdown' | 'gameover';
 
@@ -16,6 +17,7 @@ export class PlayScene extends Scene {
   private ball!: Ball;
   private particles!: ParticleSystem;
   private bg!: Graphics;
+  private grid!: GridManager<number>;
 
   private p1score = 0;
   private p2score = 0;
@@ -23,8 +25,7 @@ export class PlayScene extends Scene {
   private countdown = 0;
   private winner = '';
 
-  private W = 0;
-  private H = 0;
+  private gameTickTimer!: number;
   private scale = 1;
 
   constructor(private readonly ctx: AppContext) {
@@ -36,19 +37,23 @@ export class PlayScene extends Scene {
     this.p2score = this.ctx.storage.load('current_match_p2', 0);
     this.state = 'playing';
     this.winner = '';
-
-    this.W = RESOLUTION.w;
-    this.H = RESOLUTION.h;
     this.scale = this.ctx.viewport.logicalScale;
+
+    // Initialize 32x18 discrete grid. cellSize = 10 logical px * scale
+    this.grid = new GridManager<number>(32, 18, 10 * this.scale, 0, 0, 0);
 
     this._buildLayout();
     this._spawnBall();
 
     this.ctx.ui.show('hud');
     this.ctx.ui.setText('#hud-score', `${this.p1score} : ${this.p2score}`);
+
+    // Tick the discrete game loop every 50ms (20 Hz logic)
+    this.gameTickTimer = timer.every(0.05, () => this._tick());
   }
 
   exit(): void {
+    timer.clearTimer(this.gameTickTimer);
     this.container.removeChildren();
     if (this.particles) this.particles.destroy();
   }
@@ -69,62 +74,78 @@ export class PlayScene extends Scene {
       }
       return;
     }
+  }
 
+  private _tick(): void {
+    if (this.state !== 'playing') return;
+
+    // 1. Move Paddles
     const { input } = this.ctx;
-    this.p1.update(dt, input.isDown('KeyW'), input.isDown('KeyS'));
-    this.p2.update(dt, input.isDown('ArrowUp'), input.isDown('ArrowDown'));
+    if (input.isDown('KeyW')) this.p1.move(-1);
+    else if (input.isDown('KeyS')) this.p1.move(1);
+    
+    if (input.isDown('ArrowUp')) this.p2.move(-1);
+    else if (input.isDown('ArrowDown')) this.p2.move(1);
 
-    this.ball.move(dt);
+    // 2. Write objects to Grid
+    this.grid.fill(0); // Clear grid
+    for (let i = 0; i < this.p1.h; i++) {
+      this.grid.set(this.p1.col, this.p1.row + i, 1);
+    }
+    for (let i = 0; i < this.p2.h; i++) {
+      this.grid.set(this.p2.col, this.p2.row + i, 2);
+    }
 
-    const half = this.ball.halfSize;
-    if (this.ball.y - half <= 0) {
-      this.ball.y = half;
-      this.ball.bounceY();
-      this._onWallBounce();
-    } else if (this.ball.y + half >= this.H) {
-      this.ball.y = this.H - half;
-      this.ball.bounceY();
+    // 3. Move Ball & Check Collisions via the Grid!
+    let nextCol = this.ball.col + this.ball.dirCol;
+    let nextRow = this.ball.row + this.ball.dirRow;
+
+    // Bounce top/bottom boundaries
+    if (nextRow < 0 || nextRow >= this.grid.rows) {
+      this.ball.dirRow *= -1;
+      nextRow = this.ball.row + this.ball.dirRow;
       this._onWallBounce();
     }
 
-    if (this._ballHitsPaddle(this.p1)) {
-      this.ball.x = this.p1.x + this.p1.w + half + 1;
-      this.ball.bounceOffPaddle(this.p1.y, this.p1.h);
-      this._onPaddleHit(this.p1.x + this.p1.w, this.ball.y, PALETTE.p1);
-    } else if (this._ballHitsPaddle(this.p2)) {
-      this.ball.x = this.p2.x - half - 1;
-      this.ball.bounceOffPaddle(this.p2.y, this.p2.h);
-      this._onPaddleHit(this.p2.x, this.ball.y, PALETTE.p2);
+    // Check paddle collision using purely the GridManager state
+    const targetCell = this.grid.get(nextCol, this.ball.row); // Check horizontally
+    if (targetCell === 1 || targetCell === 2) {
+      this.ball.dirCol *= -1;
+      nextCol = this.ball.col + this.ball.dirCol;
+      const color = targetCell === 1 ? PALETTE.p1 : PALETTE.p2;
+      this._onPaddleHit(this.ball.x, this.ball.y, color);
     }
 
-    if (this.ball.x + half < 0) {
+    this.ball.col = nextCol;
+    this.ball.row = nextRow;
+    this.ball.updatePosition();
+
+    // 4. Score Logic
+    if (this.ball.col < 0) {
       this.p2score++;
       this.ctx.storage.save('current_match_p2', this.p2score);
       this._onScore('P2');
-    } else if (this.ball.x - half > this.W) {
+    } else if (this.ball.col >= this.grid.cols) {
       this.p1score++;
       this.ctx.storage.save('current_match_p1', this.p1score);
       this._onScore('P1');
     }
-
-    this.ctx.ui.setText('#hud-score', `${this.p1score} : ${this.p2score}`);
   }
 
   private _buildLayout(): void {
-    const { W, H, scale } = this;
+    const W = RESOLUTION.w * this.scale;
+    const H = RESOLUTION.h * this.scale;
 
     this.bg = new Graphics();
     this.bg.rect(0, 0, W, H).fill({ color: PALETTE.bg });
-    for (let y = 4 * scale; y < H; y += 9 * scale) {
-      this.bg.rect(W / 2 - 1 * scale, y, 2 * scale, 5 * scale).fill({ color: PALETTE.dim });
+    for (let y = 4 * this.scale; y < H; y += 9 * this.scale) {
+      this.bg.rect(W / 2 - 1 * this.scale, y, 2 * this.scale, 5 * this.scale).fill({ color: PALETTE.dim });
     }
     this.container.addChild(this.bg);
 
-    const margin = GAME.paddleMargin * scale;
-    const pH = GAME.paddleH * scale;
-    const pW = GAME.paddleW * scale;
-    this.p1 = new Paddle(margin, H / 2 - pH / 2, PALETTE.p1, scale);
-    this.p2 = new Paddle(W - margin - pW, H / 2 - pH / 2, PALETTE.p2, scale);
+    // Paddle 1 at col 1, Paddle 2 at col 30 (grid is 32 cols)
+    this.p1 = new Paddle(this.grid, 1, 7, PALETTE.p1);
+    this.p2 = new Paddle(this.grid, 30, 7, PALETTE.p2);
     this.container.addChild(this.p1.view, this.p2.view);
 
     this.particles = new ParticleSystem(256);
@@ -136,17 +157,8 @@ export class PlayScene extends Scene {
       this.container.removeChild(this.ball.view);
       this.ball.destroy();
     }
-    this.ball = new Ball(this.W / 2, this.H / 2, this.scale);
+    this.ball = new Ball(this.grid, Math.floor(this.grid.cols / 2), Math.floor(this.grid.rows / 2));
     this.container.addChildAt(this.ball.view, this.container.children.indexOf(this.particles.container));
-  }
-
-  private _ballHitsPaddle(paddle: Paddle): boolean {
-    const size = this.ball.halfSize * 2;
-    const b = paddle.bounds;
-    return checkAABB(
-      this.ball.x - this.ball.halfSize, this.ball.y - this.ball.halfSize, size, size,
-      b.x, b.y, b.w, b.h
-    );
   }
 
   private _onWallBounce(): void {
@@ -166,7 +178,7 @@ export class PlayScene extends Scene {
       color,
       speed: [40 * this.scale, 80 * this.scale],
       spread: Math.PI * 0.6,
-      direction: hitX < this.W / 2 ? 0 : Math.PI,
+      direction: hitX < (RESOLUTION.w * this.scale) / 2 ? 0 : Math.PI,
       life: [0.3, 0.5],
       size: 2 * this.scale,
     });
@@ -178,7 +190,7 @@ export class PlayScene extends Scene {
     this.container.removeChild(this.ball.view);
     this.ball.destroy();
 
-    this.particles.emit(this.W / 2, this.H / 2, {
+    this.particles.emit((RESOLUTION.w * this.scale) / 2, (RESOLUTION.h * this.scale) / 2, {
       count: 24,
       color: who === 'P1' ? PALETTE.p1 : PALETTE.p2,
       speed: [60 * this.scale, 100 * this.scale],

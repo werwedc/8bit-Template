@@ -1,60 +1,48 @@
 /**
- * Paddle entity — drawn once at construction, repositioned each frame.
- *
- * Pixi v8 pattern: Graphics commands are recorded on construction.
- * No need to clear/redraw each frame — just move the container.
+ * Paddle entity — discrete grid version.
  */
 
 import { Graphics } from 'pixi.js';
 import { Entity } from '../../core/entity';
-import { GAME, RESOLUTION } from '../config';
-import { clamp } from '../../core/physics';
+import { GridManager } from '../../core/grid';
 
 export class Paddle extends Entity {
-  /** Current logical y position (top-left of paddle). */
-  y: number;
-
-  readonly x: number;
-  readonly w: number;
-  readonly h: number;
-  private readonly speed: number;
+  public col: number;
+  public row: number;
+  public readonly h: number = 3; // Height in cells
+  
+  private grid: GridManager<number>;
 
   constructor(
-    x: number,
-    startY: number,
-    color: number,
-    scale: number = 1
+    grid: GridManager<number>,
+    col: number,
+    startRow: number,
+    color: number
   ) {
     super();
-    this.x = x;
-    this.y = startY;
-    this.w = GAME.paddleW * scale;
-    this.h = GAME.paddleH * scale;
-    this.speed = GAME.paddleSpeed * scale;
+    this.grid = grid;
+    this.col = col;
+    this.row = startRow;
 
     const gfx = new Graphics();
-    // Draw rounded rectangle for a slightly nicer retro look
-    gfx.roundRect(0, 0, this.w, this.h, 1).fill({ color });
+    for (let i = 0; i < this.h; i++) {
+      gfx.rect(0, i * this.grid.cellSize, this.grid.cellSize, this.grid.cellSize).fill({ color });
+    }
     this.view.addChild(gfx);
-    this.view.position.set(x, startY);
+    
+    const pos = this.grid.toWorld(this.col, this.row);
+    this.view.position.set(pos.x, pos.y);
   }
 
   /**
-   * Move paddle based on directional input, clamped to viewport bounds.
-   * @param dt    Delta time in seconds
-   * @param up    Is the "up" action held this frame?
-   * @param down  Is the "down" action held this frame?
+   * Move paddle up or down by cells.
    */
-  update(dt: number, up: boolean, down: boolean): void {
-    if (up) this.y -= this.speed * dt;
-    if (down) this.y += this.speed * dt;
-
-    this.y = clamp(this.y, 0, RESOLUTION.h - this.h);
-    this.view.y = this.y;
-  }
-
-  /** Simple AABB for ball collision. */
-  get bounds() {
-    return { x: this.x, y: this.y, w: this.w, h: this.h };
+  public move(dir: number): void {
+    const nextRow = this.row + dir;
+    if (nextRow >= 0 && nextRow + this.h <= this.grid.rows) {
+      this.row = nextRow;
+      const pos = this.grid.toWorld(this.col, this.row);
+      this.view.position.set(pos.x, pos.y);
+    }
   }
 }

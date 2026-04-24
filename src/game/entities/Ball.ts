@@ -1,68 +1,48 @@
 /**
- * Ball entity — bright-coloured square that triggers the bloom filter glow.
+ * Ball entity — discrete grid version.
  */
 
 import { Graphics } from 'pixi.js';
 import { Entity } from '../../core/entity';
-import { GAME, PALETTE } from '../config';
-import { randomElement, randomFloat } from '../../core/physics';
+import { PALETTE } from '../config';
+import { randomElement } from '../../core/physics';
+import { GridManager } from '../../core/grid';
 
 export class Ball extends Entity {
-  vx: number;
-  vy: number;
-  private _speed: number;
-  private _scale: number;
+  public col: number;
+  public row: number;
+  public dirCol: number;
+  public dirRow: number;
+  
+  private grid: GridManager<number>;
 
-  constructor(startX: number, startY: number, scale: number = 1) {
+  constructor(grid: GridManager<number>, startCol: number, startRow: number) {
     super();
-    this._scale = scale;
+    this.grid = grid;
+    this.col = startCol;
+    this.row = startRow;
 
-    this._speed = GAME.ballInitialSpeed * scale;
-    // Randomise initial horizontal direction; slight random vertical angle
-    this.vx = this._speed * randomElement([1, -1]);
-    this.vy = this._speed * randomFloat(-0.2, 0.2); // ±20% Y component
+    // Randomize initial direction
+    this.dirCol = randomElement([1, -1]);
+    this.dirRow = randomElement([1, -1]);
 
-    const size = GAME.ballSize * scale;
     const gfx = new Graphics();
-    // Draw centred so view.position is the ball's centre
-    gfx.rect(-size / 2, -size / 2, size, size).fill({ color: PALETTE.accent });
-
+    // Fill exactly one cell
+    gfx.rect(0, 0, this.grid.cellSize, this.grid.cellSize).fill({ color: PALETTE.accent });
     this.view.addChild(gfx);
-    this.view.position.set(startX, startY);
+    
+    this.updatePosition();
   }
 
-  get x(): number { return this.view.x; }
-  set x(v: number) { this.view.x = v; }
-  get y(): number { return this.view.y; }
-  set y(v: number) { this.view.y = v; }
-
-  /** Advance position by velocity × dt. */
-  move(dt: number): void {
-    this.x += this.vx * dt;
-    this.y += this.vy * dt;
+  public updatePosition(): void {
+    const pos = this.grid.toWorld(this.col, this.row);
+    this.view.position.set(pos.x, pos.y);
   }
 
-  /** Bounce off the horizontal axis (top/bottom walls). */
-  bounceY(): void {
-    this.vy *= -1;
+  public get x(): number {
+    return this.grid.toWorld(this.col, this.row).x + this.grid.cellSize / 2;
   }
-
-  /** Bounce off a paddle, optionally shifting the Y velocity based on hit position. */
-  bounceOffPaddle(paddleY: number, paddleH: number): void {
-    this.vx *= -1;
-    // Slightly increase speed on each paddle hit, up to the cap
-    const speed = Math.min(Math.sqrt(this.vx ** 2 + this.vy ** 2) + (GAME.ballSpeedIncrease * this._scale), GAME.maxBallSpeed * this._scale);
-    // Adjust Y angle based on where on the paddle the ball hit
-    const relativeHit = (this.y - paddleY - paddleH / 2) / (paddleH / 2); // -1..1
-    const angle = relativeHit * (Math.PI / 4); // max ±45°
-    const dir = this.vx > 0 ? 1 : -1;
-    this.vx = Math.cos(angle) * speed * dir;
-    this.vy = Math.sin(angle) * speed;
-
-    this._speed = speed;
-  }
-
-  get halfSize(): number {
-    return (GAME.ballSize * this._scale) / 2;
+  public get y(): number {
+    return this.grid.toWorld(this.col, this.row).y + this.grid.cellSize / 2;
   }
 }
