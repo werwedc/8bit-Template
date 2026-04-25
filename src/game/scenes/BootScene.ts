@@ -1,12 +1,3 @@
-/**
- * BootScene — loads all assets then hands off to MenuScene.
- *
- * Participants: add assets to ASSET_MANIFEST in game/manifest.ts.
- * To register audio sounds, add calls to ctx.audio.register() below.
- *
- * Displays a progress bar so the user sees something before the game starts.
- */
-
 import { Graphics, Text, TextStyle } from 'pixi.js';
 import { Scene } from '../../core/scene';
 import type { AppContext } from '../../core/types';
@@ -20,9 +11,6 @@ export class BootScene extends Scene {
   }
 
   enter(): void {
-    // Read RESOLUTION fresh inside enter() — native-res mode mutates these
-    // at startup (and on F2 swap) to match the device. Reading at module
-    // scope would cache the original 320×180 and freeze the layout there.
     const W = RESOLUTION.w;
     const H = RESOLUTION.h;
     const scale = this.ctx.viewport.logicalScale;
@@ -32,12 +20,10 @@ export class BootScene extends Scene {
     const BAR_X = Math.floor((W - BAR_W) / 2);
     const BAR_Y = Math.floor(H * 0.6);
 
-    // Background fill
     const bg = new Graphics();
     bg.rect(0, 0, W, H).fill({ color: PALETTE.bg });
     this.container.addChild(bg);
 
-    // "LOADING" label
     const label = new Text({
       text: 'LOADING',
       style: new TextStyle({
@@ -51,12 +37,10 @@ export class BootScene extends Scene {
     label.position.set(W / 2, BAR_Y - 6 * scale);
     this.container.addChild(label);
 
-    // Progress bar outline
     const outline = new Graphics();
     outline.rect(BAR_X - 1 * scale, BAR_Y - 1 * scale, BAR_W + 2 * scale, BAR_H + 2 * scale).stroke({ color: PALETTE.fg, width: 1 * scale });
     this.container.addChild(outline);
 
-    // Progress bar fill (starts at 0 width)
     const fill = new Graphics();
     this.container.addChild(fill);
 
@@ -70,15 +54,12 @@ export class BootScene extends Scene {
   update(): void {}
 
   private async _load(onProgress: (p: number) => void): Promise<void> {
-    // Pixi Assets
     await this.ctx.assets.loadManifest(ASSET_MANIFEST, onProgress);
 
-    // Register Howler sounds here
-    this.ctx.audio.register('bounce', { src: ['/assets/audio/beep.mp3'] });
-    this.ctx.audio.register('score', { src: ['/assets/audio/death.mp3'] });
-    this.ctx.audio.register('music', { src: ['/assets/audio/Lobby.mp3'], loop: true, volume: 0.5 });
+    // ── Register audio here ──────────────────────────────────────────────
+    // this.ctx.audio.register('hit', { src: ['/assets/audio/hit.mp3'] });
+    // this.ctx.audio.register('music', { src: ['/assets/audio/bgm.mp3'], loop: true, volume: 0.5 });
 
-    // Ensure bar reaches 100% visually before we cut to menu
     onProgress(1);
     await new Promise((r) => setTimeout(r, 100));
 

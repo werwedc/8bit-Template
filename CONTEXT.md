@@ -6,44 +6,73 @@
 
 ## Table of Contents
 
-1. [Project Overview](#1-project-overview)
-2. [Tech Stack & Scripts](#2-tech-stack--scripts)
-3. [Architecture](#3-architecture)
-4. [The AppContext Object](#4-the-appcontext-object)
-5. [Core Systems Reference](#5-core-systems-reference)
-   - [Scene System](#51-scene-system)
-   - [Entity System](#52-entity-system)
-   - [InputManager](#53-inputmanager)
-   - [AudioManager](#54-audiomanager)
-   - [AssetManager](#55-assetmanager)
-   - [Viewport & Render Modes](#56-viewport--render-modes)
-   - [Camera](#57-camera)
-   - [ParticleSystem](#58-particlesystem)
-   - [GridManager](#59-gridmanager)
-   - [Animator (Animation State Machine)](#510-animator)
-   - [Physics & Math Utilities](#511-physics--math-utilities)
-   - [Timer System](#512-timer-system)
-   - [EventBus](#513-eventbus)
-   - [UIManager](#514-uimanager)
-   - [StorageManager](#515-storagemanager)
-   - [DebugOverlay](#516-debugoverlay)
-   - [Retro Filters](#517-retro-filters)
-   - [Settings Menu](#518-settings-menu)
-6. [Critical Rules & Error Avoidance](#6-critical-rules--error-avoidance)
-7. [Step-by-Step: Building a Game](#7-step-by-step-building-a-game)
-8. [Rapid Development Cheatsheet](#8-rapid-development-cheatsheet)
+1. [Current State — Ready to Build](#1-current-state--ready-to-build)
+2. [Project Overview](#2-project-overview)
+3. [Tech Stack & Scripts](#3-tech-stack--scripts)
+4. [Architecture](#4-architecture)
+5. [The AppContext Object](#5-the-appcontext-object)
+6. [Core Systems Reference](#6-core-systems-reference)
+   - [Scene System](#61-scene-system)
+   - [Entity System](#62-entity-system)
+   - [InputManager](#63-inputmanager)
+   - [AudioManager](#64-audiomanager)
+   - [AssetManager](#65-assetmanager)
+   - [Viewport & Render Modes](#66-viewport--render-modes)
+   - [Camera](#67-camera)
+   - [ParticleSystem](#68-particlesystem)
+   - [GridManager](#69-gridmanager)
+   - [Animator (Animation State Machine)](#610-animator)
+   - [Physics & Math Utilities](#611-physics--math-utilities)
+   - [Timer System](#612-timer-system)
+   - [EventBus](#613-eventbus)
+   - [UIManager](#614-uimanager)
+   - [StorageManager](#615-storagemanager)
+   - [DebugOverlay](#616-debugoverlay)
+   - [Retro Filters](#617-retro-filters)
+   - [Settings Menu](#618-settings-menu)
+7. [Critical Rules & Error Avoidance](#7-critical-rules--error-avoidance)
+8. [Step-by-Step: Building a Game](#8-step-by-step-building-a-game)
+9. [Rapid Development Cheatsheet](#9-rapid-development-cheatsheet)
 
 ---
 
-## 1. Project Overview
+## 1. Current State — Ready to Build
 
-A TypeScript game template built on **PixiJS v8** with retro 8-bit aesthetics. Ships with a playable Pong demo. The engine (`src/core/`) is fully separated from game logic (`src/game/`), so you replace the game layer to build anything — Tetris, platformer, shooter, puzzle, etc.
+The demo game (Pong) has been **fully removed**. The project compiles and runs cleanly. What remains is:
+
+### What's already working (don't touch)
+- **`src/core/*`** — The entire engine: scene management, input, audio, assets, viewport, camera, particles, grid, animation, physics, timers, events, UI, storage, filters, debug overlay. All wired up and running.
+- **`src/main.ts`** — Entry point. Bootstraps all systems, runs the game loop, handles F1/F2 hotkeys. Fully functional.
+- **`index.html`** + **`src/style.css`** — Canvas + UI layer styling with glassmorphism settings modal.
+
+### What's there as empty skeletons (your starting point)
+- **`src/game/config.ts`** — Has `RESOLUTION` (320x180), `RENDER_MODE` ('retro'), `PALETTE` (bg/fg/accent only), empty `GAME` object, and the 4 filter presets. **Next:** Add your game-specific constants (speeds, sizes, scoring, etc.) and palette colors.
+- **`src/game/manifest.ts`** — Empty asset array. **Next:** Add your sprite/font entries after dropping files into `public/assets/`.
+- **`src/game/ui-layers.ts`** — Has three skeleton layers: `main-menu` (title + PLAY + SETTINGS buttons), `hud` (single score div), `game-over` (text + restart button). **Next:** Customize the HTML to match your game's UI needs.
+- **`src/game/scenes/BootScene.ts`** — Loads assets, shows progress bar, transitions to MenuScene. Audio registration lines are commented out. **Next:** Uncomment and add your `audio.register()` calls.
+- **`src/game/scenes/MenuScene.ts`** — Shows title + background, PLAY button transitions to PlayScene, Enter key also works. **Next:** Add your menu visuals, animations, or instructions.
+- **`src/game/scenes/PlayScene.ts`** — Empty scene with a background fill and HUD shown. Escape returns to menu. **Next:** This is where your game goes — entities, logic, collisions, scoring.
+- **`src/game/entities/`** — Directory exists but is empty. **Next:** Create your entity classes here (Player, Enemy, Bullet, etc.).
+
+### What to do first
+1. Decide your game → fill in `config.ts` (TITLE, PALETTE, GAME constants)
+2. Drop sprites/audio into `public/assets/` → update `manifest.ts` and `BootScene.ts`
+3. Create entity classes in `entities/`
+4. Build your gameplay in `PlayScene.ts`
+5. Customize `ui-layers.ts` for your HUD
+6. `npm run dev` and iterate
+
+---
+
+## 2. Project Overview
+
+A TypeScript game template built on **PixiJS v8** with retro 8-bit aesthetics. The engine (`src/core/`) is fully separated from game logic (`src/game/`), so you build anything on top — Tetris, platformer, shooter, puzzle, etc. The game layer is currently a clean skeleton ready to be filled in.
 
 **Key features:** Scene management, grid-based or free-form movement, sprite animation state machine, particle system, CRT/bloom post-FX, keyboard + gamepad input, Howler.js audio, localStorage persistence, HTML-based UI overlay, global event bus.
 
 ---
 
-## 2. Tech Stack & Scripts
+## 3. Tech Stack & Scripts
 
 | Package | Version | Role |
 |---------|---------|------|
@@ -66,7 +95,7 @@ npm test          # Vitest unit tests
 
 ---
 
-## 3. Architecture
+## 4. Architecture
 
 ### Directory Structure
 
@@ -94,17 +123,15 @@ src/
     debug.ts         ← FPS/scene/object-count overlay (backtick to toggle)
     types.ts         ← AppContext interface definition
 
-  game/              ← YOUR game. Replace entirely for a new game.
+  game/              ← YOUR game. All skeletons — ready to fill in.
     config.ts        ← RESOLUTION, PALETTE, GAME constants, FILTER_PRESETS
-    manifest.ts      ← Asset list to preload (sprites, fonts)
-    ui-layers.ts     ← Registers HTML UI layers (menus, HUD, game-over)
+    manifest.ts      ← Asset list to preload (empty — add your entries)
+    ui-layers.ts     ← Registers HTML UI layers (menu, HUD, game-over skeletons)
     scenes/
       BootScene.ts   ← Loads assets, shows progress bar, transitions to MenuScene
-      MenuScene.ts   ← Title screen with PLAY button
-      PlayScene.ts   ← Main gameplay (Pong demo)
-    entities/
-      Ball.ts        ← Grid-based ball with Animator
-      Paddle.ts      ← Grid-based paddle
+      MenuScene.ts   ← Title screen with PLAY button → PlayScene
+      PlayScene.ts   ← Empty skeleton — your gameplay goes here
+    entities/        ← Empty directory — create your entity classes here
 
   main.ts            ← Entry point: wires all systems, starts game loop
   style.css          ← Global CSS (canvas, UI layers, glassmorphism)
@@ -135,7 +162,7 @@ Each frame, the ticker runs in this exact order:
 
 ---
 
-## 4. The AppContext Object
+## 5. The AppContext Object
 
 Every `Scene` constructor receives an `AppContext` — the single dependency injection point. No globals, no singletons.
 
@@ -160,9 +187,9 @@ Access any system from within a scene via `this.ctx.<system>`.
 
 ---
 
-## 5. Core Systems Reference
+## 6. Core Systems Reference
 
-### 5.1 Scene System
+### 6.1 Scene System
 **File:** `src/core/scene.ts`
 
 Scenes are the backbone of all game structure. Each game state (boot, menu, play, game-over) is a Scene subclass.
@@ -220,7 +247,7 @@ this.ctx.sceneManager.transitionTo(PlayScene, undefined, true);
 
 ---
 
-### 5.2 Entity System
+### 6.2 Entity System
 **File:** `src/core/entity.ts`
 
 A lightweight component-bag base class. Not a full ECS — just enough structure to prevent ad-hoc entity implementations.
@@ -258,7 +285,7 @@ scene.container.addChild(player.view);
 
 ---
 
-### 5.3 InputManager
+### 6.3 InputManager
 **File:** `src/core/input.ts`
 
 Tracks keyboard and gamepad state. Query by `KeyboardEvent.code` or `GP_<buttonIndex>`.
@@ -291,7 +318,7 @@ Auto-prevents browser scroll on arrow keys and Space. Clears state on window blu
 
 ---
 
-### 5.4 AudioManager
+### 6.4 AudioManager
 **File:** `src/core/audio.ts`
 
 Thin wrapper around Howler.js. Handles browser autoplay-unlock automatically.
@@ -337,7 +364,7 @@ this.ctx.audio.stop('music');
 
 ---
 
-### 5.5 AssetManager
+### 6.5 AssetManager
 **File:** `src/core/assets.ts`
 
 Typed wrapper around Pixi v8's `Assets` API. Supports Aseprite JSON Hash spritesheets and bitmap fonts.
@@ -380,7 +407,7 @@ export const ASSET_MANIFEST: AssetManifestItem[] = [
 
 ---
 
-### 5.6 Viewport & Render Modes
+### 6.6 Viewport & Render Modes
 **File:** `src/core/viewport.ts`
 
 Handles the rendering pipeline and screen scaling. Three modes available:
@@ -434,7 +461,7 @@ In `retro` and `native` mode, `logicalScale` is `1`. In `native-res`, it equals 
 
 ---
 
-### 5.7 Camera
+### 6.7 Camera
 **File:** `src/core/camera.ts`
 
 Screen-shake effect. Operates on the `viewport.world` container.
@@ -461,7 +488,7 @@ this.ctx.camera.shake(3, 3, 0, 0.12);   // Small hit feedback
 
 ---
 
-### 5.8 ParticleSystem
+### 6.8 ParticleSystem
 **File:** `src/core/particles.ts`
 
 Pooled sprite particle emitter powered by GSAP. Pre-allocates sprites for zero-allocation bursts.
@@ -513,7 +540,7 @@ this.particles.destroy();
 
 ---
 
-### 5.9 GridManager
+### 6.9 GridManager
 **File:** `src/core/grid.ts`
 
 Universal grid for tile-based or discrete-movement games (Tetris, Snake, Pac-Man, Arkanoid, etc.). Provides world↔grid coordinate translation and a typed 2D data array.
@@ -594,7 +621,7 @@ const neighbors = grid.getNeighbors(ghostCol, ghostRow)
 
 ---
 
-### 5.10 Animator
+### 6.10 Animator
 **File:** `src/core/animation.ts`
 
 Sprite animation state machine with a locking mechanism for one-shot animations.
@@ -660,7 +687,7 @@ entity.view.addChild(animator.sprite);
 
 ---
 
-### 5.11 Physics & Math Utilities
+### 6.11 Physics & Math Utilities
 **File:** `src/core/physics.ts`
 
 Standalone pure functions — no classes, no state.
@@ -728,7 +755,7 @@ function reflectOffBounds(
 
 ---
 
-### 5.12 Timer System
+### 6.12 Timer System
 **File:** `src/core/timer.ts`
 
 Game-loop-synced timers. Pauses when the game pauses. **Not** wall-clock time.
@@ -767,7 +794,7 @@ timer.clearTimer(spawnTimer);
 
 ---
 
-### 5.13 EventBus
+### 6.13 EventBus
 **File:** `src/core/events.ts`
 
 Global pub/sub for decoupled communication between systems. Avoids tight coupling (e.g. gameplay code doesn't need to call `audio.play()` directly).
@@ -804,7 +831,7 @@ this.ctx.events.clear('ENEMY_KILLED');
 
 ---
 
-### 5.14 UIManager
+### 6.14 UIManager
 **File:** `src/core/ui.ts`
 
 Manages HTML overlay layers for menus, HUD, and game-over screens. HTML elements sit on top of the canvas.
@@ -862,7 +889,7 @@ this.ctx.ui.onClick('#play-btn', () => {
 
 ---
 
-### 5.15 StorageManager
+### 6.15 StorageManager
 **File:** `src/core/storage.ts`
 
 Crash-proof, namespaced localStorage wrapper. Auto-serializes JSON.
@@ -900,7 +927,7 @@ The StorageManager is initialized in `main.ts` with the prefix `'gamejam_'`. Cha
 
 ---
 
-### 5.16 DebugOverlay
+### 6.16 DebugOverlay
 **File:** `src/core/debug.ts`
 
 Press **backtick (`)** to toggle. Shows FPS, delta time, current scene name, object count, active filter preset, and render mode.
@@ -917,7 +944,7 @@ class DebugOverlay {
 
 ---
 
-### 5.17 Retro Filters
+### 6.17 Retro Filters
 **File:** `src/core/filters.ts`
 
 Two-pass post-processing stack: bloom on the world (low-res), CRT + RGB split on the screen (high-res).
@@ -957,7 +984,7 @@ export const FILTER_PRESETS: { name: string; config: RetroFilterConfig }[] = [
 
 ---
 
-### 5.18 Settings Menu
+### 6.18 Settings Menu
 **File:** `src/core/settings-ui.ts`
 
 Glassmorphism modal for in-game settings. Controls master volume, mute, render mode, and graphics quality. Persists choices via StorageManager.
@@ -983,7 +1010,7 @@ ui.onClick('#settings-btn', () => settingsMenu.show());
 
 ---
 
-## 6. Critical Rules & Error Avoidance
+## 7. Critical Rules & Error Avoidance
 
 ### Rule 1: Dynamic UI & Storage Synchronization
 
@@ -1058,7 +1085,7 @@ exit(): void {
 
 ### Rule 6: core/ Never Imports from game/
 
-This is the architectural contract. All game-specific code stays in `src/game/`. The engine (`src/core/`) is game-agnostic. If you need to add a new core system, add it to `core/` and wire it into `AppContext` in `types.ts` and `main.ts`.
+This is the architectural contract. All game-specific code stays in `src/game/`. The engine (`src/core/`) is game-agnostic and must never reference anything in `game/`. If you need to add a new core system, add it to `core/` and wire it into `AppContext` in `types.ts` and `main.ts`.
 
 ### Rule 7: Set TextureSource.defaultOptions.scaleMode Before Any Texture Load
 
@@ -1070,9 +1097,9 @@ This ensures all textures use nearest-neighbor filtering (pixel-art requirement)
 
 ---
 
-## 7. Step-by-Step: Building a Game
+## 8. Step-by-Step: Building a Game
 
-This walks through replacing the Pong demo with your own game, using a hypothetical Space Invaders as an example.
+The demo has been removed. The game layer is clean skeletons. This walks through filling them in, using a hypothetical Space Invaders as an example.
 
 ### Step 1: Define Your Config
 
@@ -1278,7 +1305,7 @@ Press **backtick** for debug overlay, **F1** for filter cycling, **F2** for rend
 
 ---
 
-## 8. Rapid Development Cheatsheet
+## 9. Rapid Development Cheatsheet
 
 ### Minimal Scene Template
 ```ts
@@ -1368,26 +1395,26 @@ this.ctx.storage.save('score', this.score);
 this.ctx.ui.setText('#hud-score', `SCORE: ${this.score}`);
 ```
 
-### Files to Edit When Starting a New Game
+### Files to Fill In (all currently skeletons)
 
-| File | What to change |
-|------|---------------|
-| `src/game/config.ts` | RESOLUTION, PALETTE, GAME constants, TITLE |
-| `src/game/manifest.ts` | Asset list to preload |
-| `src/game/ui-layers.ts` | HTML for menus, HUD, overlays |
-| `src/game/scenes/BootScene.ts` | Audio registration inside `_load()` |
-| `src/game/scenes/MenuScene.ts` | Title screen layout and navigation |
-| `src/game/scenes/PlayScene.ts` | Replace with your gameplay |
-| `src/game/entities/*` | Replace with your entity classes |
-| `src/style.css` | UI styling |
-| `public/assets/` | Your sprites, audio, fonts |
+| File | Status | What to add |
+|------|--------|-------------|
+| `src/game/config.ts` | Has defaults | Your TITLE, PALETTE colors, GAME constants |
+| `src/game/manifest.ts` | Empty array | Your asset entries after dropping files into `public/assets/` |
+| `src/game/ui-layers.ts` | Generic skeleton | Customize HTML for your menus, HUD, overlays |
+| `src/game/scenes/BootScene.ts` | Working, audio commented out | Uncomment and add your `audio.register()` calls |
+| `src/game/scenes/MenuScene.ts` | Working skeleton | Add your menu visuals, instructions |
+| `src/game/scenes/PlayScene.ts` | Empty (bg + Escape key only) | Your entire gameplay |
+| `src/game/entities/` | Empty directory | Create your entity classes (Player.ts, Enemy.ts, etc.) |
+| `src/style.css` | Has base styles | Adjust UI styling to match your game |
+| `public/assets/` | Has leftover demo files | Drop your sprites, audio, fonts here |
 
 ### Files You Should NOT Edit
 
 | File | Why |
 |------|-----|
-| `src/core/*` | Engine layer — game-agnostic, reusable |
-| `src/main.ts` | Wiring is already correct. Only edit to add a new core system to AppContext. |
+| `src/core/*` | Engine layer — game-agnostic, fully working |
+| `src/main.ts` | Wiring is correct. Only edit to add a new core system to AppContext. |
 | `index.html` | Just a canvas + script tag. Nothing to change. |
 
 ### Runtime Debug Keys
