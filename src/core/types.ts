@@ -15,6 +15,7 @@ import type { UIManager } from './ui';
 import type { Viewport } from './viewport';
 import type { Camera } from './camera';
 import type { StorageManager } from './storage';
+import type { EventBus } from './events';
 
 export interface AppContext {
   app: Application;
@@ -27,5 +28,6 @@ export interface AppContext {
   debug: DebugOverlay;
   ui: UIManager;
   storage: StorageManager;
+  events: EventBus;
   sceneManager: SceneManager;
 }

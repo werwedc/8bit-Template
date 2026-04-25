@@ -50,12 +50,47 @@ export class PlayScene extends Scene {
 
     // Tick the discrete game loop every 100ms (10 Hz logic)
     this.gameTickTimer = timer.every(0.1, () => this._tick());
+
+    // ── EVENT BUS DEMONSTRATION ──────────────────────────────────────────────
+    // Instead of tightly coupling sound and particles to the game logic loops,
+    // we listen for abstract game events and react visually/audibly.
+    this.ctx.events.on('WALL_BOUNCE', (x: number, y: number) => {
+      this.particles.emit(x, y, {
+        count: 4, color: PALETTE.accent, speed: [20 * this.scale, 40 * this.scale],
+        life: [0.2, 0.3], size: 2 * this.scale,
+      });
+      this.ctx.audio.play('bounce');
+    });
+
+    this.ctx.events.on('PADDLE_HIT', (x: number, y: number, color: number) => {
+      this.particles.emit(x, y, {
+        count: 12, color, speed: [40 * this.scale, 80 * this.scale],
+        spread: Math.PI * 0.6, direction: x < (RESOLUTION.w * this.scale) / 2 ? 0 : Math.PI,
+        life: [0.3, 0.5], size: 2 * this.scale,
+      });
+      this.ctx.camera.shake(3 * this.scale, 3 * this.scale, 0, 0.12);
+      this.ctx.audio.play('bounce');
+    });
+
+    this.ctx.events.on('SCORE', (who: string) => {
+      this.particles.emit((RESOLUTION.w * this.scale) / 2, (RESOLUTION.h * this.scale) / 2, {
+        count: 24, color: who === 'P1' ? PALETTE.p1 : PALETTE.p2,
+        speed: [60 * this.scale, 100 * this.scale], life: [0.5, 0.8], size: 3 * this.scale,
+      });
+      this.ctx.camera.shake(6 * this.scale, 6 * this.scale, 2, 0.25);
+      this.ctx.audio.play('score');
+    });
   }
 
   exit(): void {
     timer.clearTimer(this.gameTickTimer);
     this.container.removeChildren();
     if (this.particles) this.particles.destroy();
+
+    // CRITICAL: Clean up listeners to prevent memory leaks!
+    this.ctx.events.clear('WALL_BOUNCE');
+    this.ctx.events.clear('PADDLE_HIT');
+    this.ctx.events.clear('SCORE');
   }
 
   update(dt: number): void {
@@ -108,7 +143,7 @@ export class PlayScene extends Scene {
     if (nextRow < 0 || nextRow >= this.grid.rows) {
       this.ball.dirRow *= -1;
       nextRow = this.ball.row + this.ball.dirRow;
-      this._onWallBounce();
+      this.ctx.events.emit('WALL_BOUNCE', this.ball.x, this.ball.y);
     }
 
     // Check paddle collision using purely the GridManager state
@@ -117,7 +152,7 @@ export class PlayScene extends Scene {
       this.ball.dirCol *= -1;
       nextCol = this.ball.col + this.ball.dirCol;
       const color = targetCell === 1 ? PALETTE.p1 : PALETTE.p2;
-      this._onPaddleHit(this.ball.x, this.ball.y, color);
+      this.ctx.events.emit('PADDLE_HIT', this.ball.x, this.ball.y, color);
       
       // Trigger the spin animation once, then go back to idle
       this.ball.animator.playOnce('spin', () => {
@@ -134,12 +169,14 @@ export class PlayScene extends Scene {
       this.p2score++;
       this.ctx.storage.save('current_match_p2', this.p2score);
       this.ctx.ui.setText('#hud-score', `${this.p1score} : ${this.p2score}`);
-      this._onScore('P2');
+      this.ctx.events.emit('SCORE', 'P2');
+      this._handleScoreState('P2');
     } else if (this.ball.col >= this.grid.cols) {
       this.p1score++;
       this.ctx.storage.save('current_match_p1', this.p1score);
       this.ctx.ui.setText('#hud-score', `${this.p1score} : ${this.p2score}`);
-      this._onScore('P1');
+      this.ctx.events.emit('SCORE', 'P1');
+      this._handleScoreState('P1');
     }
   }
 
@@ -172,45 +209,9 @@ export class PlayScene extends Scene {
     this.container.addChildAt(this.ball.view, this.container.children.indexOf(this.particles.container));
   }
 
-  private _onWallBounce(): void {
-    this.particles.emit(this.ball.x, this.ball.y, {
-      count: 4,
-      color: PALETTE.accent,
-      speed: [20 * this.scale, 40 * this.scale],
-      life: [0.2, 0.3],
-      size: 2 * this.scale,
-    });
-    this.ctx.audio.play('bounce');
-  }
-
-  private _onPaddleHit(hitX: number, hitY: number, color: number): void {
-    this.particles.emit(hitX, hitY, {
-      count: 12,
-      color,
-      speed: [40 * this.scale, 80 * this.scale],
-      spread: Math.PI * 0.6,
-      direction: hitX < (RESOLUTION.w * this.scale) / 2 ? 0 : Math.PI,
-      life: [0.3, 0.5],
-      size: 2 * this.scale,
-    });
-    this.ctx.camera.shake(3 * this.scale, 3 * this.scale, 0, 0.12);
-    this.ctx.audio.play('bounce');
-  }
-
-  private _onScore(who: string): void {
+  private _handleScoreState(who: string): void {
     this.container.removeChild(this.ball.view);
     this.ball.destroy();
-
-    this.particles.emit((RESOLUTION.w * this.scale) / 2, (RESOLUTION.h * this.scale) / 2, {
-      count: 24,
-      color: who === 'P1' ? PALETTE.p1 : PALETTE.p2,
-      speed: [60 * this.scale, 100 * this.scale],
-      life: [0.5, 0.8],
-      size: 3 * this.scale,
-    });
-
-    this.ctx.camera.shake(6 * this.scale, 6 * this.scale, 2, 0.25);
-    this.ctx.audio.play('score');
 
     if (this.p1score >= GAME.scoreToWin || this.p2score >= GAME.scoreToWin) {
       this.winner = who;

@@ -78,6 +78,7 @@ export class SceneManager {
   ): void {
     // Tear down current scene
     if (this.current) {
+      this.ctx.events.emit('SCENE_EXIT', this._currentName);
       this.current.exit();
       this.ctx.viewport.world.removeChild(this.current.container);
     }
@@ -98,6 +99,8 @@ export class SceneManager {
     this.currentClass = SceneClass;
     this._currentName = SceneClass.name;
     this.ctx.debug.setScene(SceneClass.name);
+    
+    this.ctx.events.emit('SCENE_START', SceneClass.name, data);
   }
 
   update(dt: number): void {
