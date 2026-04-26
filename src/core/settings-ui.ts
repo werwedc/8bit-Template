@@ -25,19 +25,19 @@ export class SettingsMenu {
         
         <div class="settings-body">
           <div class="settings-row">
-            <img src="/public/sprites/info.svg" class="settings-icon" />
+            <img src="/assets/ui/icons/volume-3.svg" class="settings-icon" id="icon-volume" />
             <label>Master Volume</label>
             <input type="range" id="settings-volume" min="0" max="1" step="0.05" value="1" />
           </div>
 
           <div class="settings-row">
-            <img src="/public/sprites/info.svg" class="settings-icon" />
+            <img src="/assets/ui/icons/volume-x.svg" class="settings-icon" />
             <label>Mute Audio</label>
             <input type="checkbox" id="settings-mute" />
           </div>
 
           <div class="settings-row">
-            <img src="/public/sprites/info.svg" class="settings-icon" />
+            <img src="/assets/ui/icons/resolution.svg" class="settings-icon" />
             <label>Resolution</label>
             <select id="settings-resolution">
               <option value="retro">Retro (Pixelated)</option>
@@ -47,7 +47,7 @@ export class SettingsMenu {
           </div>
 
           <div class="settings-row">
-            <img src="/public/sprites/info.svg" class="settings-icon" />
+            <img src="/assets/ui/icons/graphics-quality-eye.svg" class="settings-icon" />
             <label>Graphics Quality</label>
             <select id="settings-graphics">
               ${config.presets.map((p, i) => `<option value="${i}">${p.toUpperCase()}</option>`).join('')}
@@ -62,6 +62,21 @@ export class SettingsMenu {
     this._loadState();
   }
 
+  private _updateVolumeIcon(vol: number, muted: boolean): void {
+    const volIcon = this.el.querySelector('#icon-volume') as HTMLImageElement;
+    if (!volIcon) return;
+
+    if (muted || vol === 0) {
+      volIcon.src = '/assets/ui/icons/volume-x.svg';
+    } else if (vol <= 0.33) {
+      volIcon.src = '/assets/ui/icons/volume-1.svg';
+    } else if (vol <= 0.66) {
+      volIcon.src = '/assets/ui/icons/volume-2.svg';
+    } else {
+      volIcon.src = '/assets/ui/icons/volume-3.svg';
+    }
+  }
+
   private _bindEvents(): void {
     const q = (sel: string) => this.el.querySelector(sel) as HTMLElement;
     
@@ -73,17 +88,20 @@ export class SettingsMenu {
     });
 
     const vol = q('#settings-volume') as HTMLInputElement;
+    const mute = q('#settings-mute') as HTMLInputElement;
+
     vol.addEventListener('input', () => {
       const v = parseFloat(vol.value);
       this.ctx.audio.setGlobalVolume(v);
       this.ctx.storage.save('settings_volume', v);
+      this._updateVolumeIcon(v, mute.checked);
     });
 
-    const mute = q('#settings-mute') as HTMLInputElement;
     mute.addEventListener('change', () => {
       const m = mute.checked;
       this.ctx.audio.mute(m);
       this.ctx.storage.save('settings_mute', m);
+      this._updateVolumeIcon(parseFloat(vol.value), m);
     });
 
     const res = q('#settings-resolution') as HTMLSelectElement;
@@ -112,6 +130,9 @@ export class SettingsMenu {
     const mute = this.ctx.storage.load('settings_mute', false);
     q('#settings-mute').checked = mute;
     this.ctx.audio.mute(mute);
+
+    // Sync the volume icon to the loaded state
+    this._updateVolumeIcon(vol, mute);
 
     // RenderMode and Graphics presets are read via main.ts at startup,
     // so here we just initialize the UI to the correct dropdown values.
