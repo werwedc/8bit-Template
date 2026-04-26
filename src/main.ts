@@ -60,6 +60,7 @@ async function main(): Promise<void> {
   // DO NOT mutate RESOLUTION here. We want Viewport to snapshot the pristine 
   // logical design size (320x180). We will hot-swap the mode after Viewport is created.
 
+  // testing
   const app = await createPixiApp(storedRenderMode);
 
   // Set canvas image-rendering based on render mode.
