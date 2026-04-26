@@ -3,6 +3,7 @@ import { GAME, PALETTE } from '../config';
 import { CellState, Orientation } from '../logic/types';
 import type { BoardState } from '../logic/BoardState';
 import { ShipVisual } from './ShipVisual';
+import { Ship } from '../logic/Ship';
 
 export class GridRenderer extends Container {
     private boardState: BoardState;
@@ -98,7 +99,34 @@ export class GridRenderer extends Container {
         // 2. Draw Hits, Misses, Sunk, and Inactive Cells
         this.hitMissLayer.clear();
 
-        // Pass A: Draw Misses (Crosses) and Inactive (Dots) from Grid Data
+        // --- NEW: Calculate Impossible Zones for the White Dots ---
+        const impossibleCoords = new Set<string>();
+        for (const ps of this.boardState.placedShips) {
+            const coords = ps.ship.getAbsoluteCoords(ps.x, ps.y, ps.orientation);
+
+            if (ps.ship.isSunk) {
+                // If sunk, all 8 surrounding cells are impossible
+                coords.forEach(c => {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            impossibleCoords.add(`${c.x + dx},${c.y + dy}`);
+                        }
+                    }
+                });
+            } else {
+                // If just damaged, only the 4 DIAGONAL cells are strictly impossible
+                coords.forEach((c, i) => {
+                    if (ps.ship.hits[i]) {
+                        impossibleCoords.add(`${c.x - 1},${c.y - 1}`);
+                        impossibleCoords.add(`${c.x + 1},${c.y - 1}`);
+                        impossibleCoords.add(`${c.x - 1},${c.y + 1}`);
+                        impossibleCoords.add(`${c.x + 1},${c.y + 1}`);
+                    }
+                });
+            }
+        }
+
+        // Pass A: Draw Misses (Crosses) and Inactive Zones (White Dots)
         for (let y = 0; y < this.boardState.height; y++) {
             const row = this.boardState.grid[y];
             if (!row) continue;
@@ -109,70 +137,45 @@ export class GridRenderer extends Container {
                 const cy = y * TS + TS / 2;
 
                 if (cell === CellState.MISS) {
-                    // ── NEW: Crisp Cross for a Miss ──
                     const crossSize = TS * 0.25;
                     this.hitMissLayer.moveTo(cx - crossSize, cy - crossSize)
                         .lineTo(cx + crossSize, cy + crossSize)
                         .moveTo(cx + crossSize, cy - crossSize)
                         .lineTo(cx - crossSize, cy + crossSize)
                         .stroke({ color: PALETTE.miss, width: 4, cap: 'round' });
-                } else if (cell === CellState.INACTIVE) {
-                    // Small, crisp white dot to represent cleared water
+                }
+                // Draw a dot if this cell is known to be empty, hasn't been guessed yet, and doesn't contain a sunk ship part
+                else if (cell === CellState.WATER && impossibleCoords.has(`${x},${y}`)) {
                     const dotSize = 6;
                     this.hitMissLayer.rect(cx - dotSize / 2, cy - dotSize / 2, dotSize, dotSize)
                         .fill({ color: 0xffffff, alpha: 0.6 });
                 }
-                // Note: We skip CellState.HIT here, because we handle it in Pass B!
             }
         }
 
-        // Pass B: Draw Joined Hits and Sunk States from Ship Data
+        // Pass B: Draw Hits on Ships (with bridging for Tetris shapes)
         for (const ps of this.boardState.placedShips) {
             const ship = ps.ship;
             const coords = ship.getAbsoluteCoords(ps.x, ps.y, ps.orientation);
 
-            // Math for 60% Area: sqrt(0.60) is approx 0.77 length.
             const hitSize = TS * 0.77;
             const margin = (TS - hitSize) / 2;
 
-            if (ship.isSunk) {
-                // ── NEW: Solid Red Rectangle spanning the entire sunk ship ──
-                const w = ps.orientation === Orientation.HORIZONTAL ? (TS * ship.shape.length) - (margin * 2) : hitSize;
-                const h = ps.orientation === Orientation.VERTICAL ? (TS * ship.shape.length) - (margin * 2) : hitSize;
-                const startX = ps.x * TS + margin;
-                const startY = ps.y * TS + margin;
+            for (let i = 0; i < coords.length; i++) {
+                if (ship.hits[i]) {
+                    const pt = coords[i]!;
+                    const color = ship.isSunk ? 0xff1133 : 0xffcc00;
 
-                this.hitMissLayer.rect(startX, startY, w, h).fill({ color: 0xff1133 }); // Bright Red
-            } else {
-                // ── NEW: Yellow Squares, joined together if adjacent ──
-                let currentStreak = 0;
-                let streakStart = -1;
+                    this.hitMissLayer.rect(pt.x * TS + margin, pt.y * TS + margin, hitSize, hitSize).fill({ color });
 
-                // Loop one extra time (<= length) to trigger drawing the final streak
-                for (let i = 0; i <= ship.hits.length; i++) {
-                    if (i < ship.hits.length && ship.hits[i]) {
-                        if (currentStreak === 0) streakStart = i; // Mark where hit streak begins
-                        currentStreak++;
-                    } else {
-                        // The hit streak broke! Draw the rectangle for the streak we just calculated
-                        if (currentStreak > 0) {
-                            const startPt = coords[streakStart]!;
+                    const rightIdx = coords.findIndex(c => c.x === pt.x + 1 && c.y === pt.y);
+                    if (rightIdx !== -1 && ship.hits[rightIdx]) {
+                        this.hitMissLayer.rect(pt.x * TS + TS - margin, pt.y * TS + margin, margin * 2, hitSize).fill({ color });
+                    }
 
-                            // Width/Height extends based on the length of the streak
-                            const rectW = ps.orientation === Orientation.HORIZONTAL
-                                ? (TS * currentStreak) - (margin * 2)
-                                : hitSize;
-                            const rectH = ps.orientation === Orientation.VERTICAL
-                                ? (TS * currentStreak) - (margin * 2)
-                                : hitSize;
-
-                            const startX = startPt.x * TS + margin;
-                            const startY = startPt.y * TS + margin;
-
-                            this.hitMissLayer.rect(startX, startY, rectW, rectH).fill({ color: 0xffcc00 }); // Yellow
-
-                            currentStreak = 0; // Reset streak
-                        }
+                    const bottomIdx = coords.findIndex(c => c.x === pt.x && c.y === pt.y + 1);
+                    if (bottomIdx !== -1 && ship.hits[bottomIdx]) {
+                        this.hitMissLayer.rect(pt.x * TS + margin, pt.y * TS + TS - margin, hitSize, margin * 2).fill({ color });
                     }
                 }
             }
@@ -191,16 +194,23 @@ export class GridRenderer extends Container {
         this.hoverLayer.rect(x * TS, y * TS, TS, TS).fill({ color: PALETTE.fg, alpha: 0.3 });
     }
 
-    public drawGhostShip(x: number, y: number, length: number, orientation: Orientation, isValid: boolean) {
+    public drawGhostShip(x: number, y: number, shipType: string, orientation: Orientation, isValid: boolean) {
         this.clearHover();
         const TS = GAME.TILE_SIZE;
 
-        const width = (orientation === Orientation.HORIZONTAL ? length : 1) * TS;
-        const height = (orientation === Orientation.VERTICAL ? length : 1) * TS;
+        // Use the logic class to perfectly calculate the rotated coordinates!
+        const tempShip = new Ship('ghost', shipType);
+        const coords = tempShip.getAbsoluteCoords(x, y, orientation);
 
-        this.hoverLayer.rect(x * TS, y * TS, width, height)
-            .fill({ color: isValid ? PALETTE.valid : PALETTE.invalid, alpha: 0.6 });
+        for (const pt of coords) {
+            // Only draw if it's within board bounds
+            if (pt.x >= 0 && pt.x < this.boardState.width && pt.y >= 0 && pt.y < this.boardState.height) {
+                this.hoverLayer.rect(pt.x * TS, pt.y * TS, TS, TS)
+                    .fill({ color: isValid ? PALETTE.valid : PALETTE.invalid, alpha: 0.6 });
+            }
+        }
     }
+
 
     public getGridCoords(localX: number, localY: number): { x: number, y: number } | null {
         const TS = GAME.TILE_SIZE;

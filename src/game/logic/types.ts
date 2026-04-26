@@ -6,9 +6,12 @@ export enum CellState {
 }
 
 export enum Orientation {
-    HORIZONTAL = 'HORIZONTAL',
-    VERTICAL = 'VERTICAL',
+    UP = 0,
+    RIGHT = 1,
+    DOWN = 2,
+    LEFT = 3,
 }
+
 
 export enum TurnPhase {
     P1_PLACEMENT = 'P1_PLACEMENT',

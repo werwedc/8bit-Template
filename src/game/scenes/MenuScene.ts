@@ -38,6 +38,71 @@ export class MenuScene extends Scene {
     this.ctx.ui.onClick('#play-pvp-btn', () => {
       this.ctx.sceneManager.transitionTo(PlayScene, { resume: false, vsCpu: false }, true);
     });
+    // Omega Setup Logic
+    this.ctx.ui.onClick('#play-omega-btn', () => {
+      this.ctx.ui.show('omega-modal');
+    });
+
+    this.ctx.ui.onClick('#omg-cancel-btn', () => {
+      this.ctx.ui.hide('omega-modal');
+    });
+
+    const updateOmegaValidation = () => {
+      const w = parseInt((document.getElementById('omg-w') as HTMLInputElement).value);
+      const h = parseInt((document.getElementById('omg-h') as HTMLInputElement).value);
+      const t = parseInt((document.getElementById('omg-t') as HTMLInputElement).value);
+
+      document.getElementById('omg-w-val')!.innerText = w.toString();
+      document.getElementById('omg-h-val')!.innerText = h.toString();
+      document.getElementById('omg-t-val')!.innerText = t.toString();
+
+      // Calculate required space. A block needs roughly 2.5 tiles of mathematical space due to "no touch" rules.
+      const blocks =
+        parseInt((document.getElementById('omg-s4') as HTMLInputElement).value) * 4 +
+        parseInt((document.getElementById('omg-s3') as HTMLInputElement).value) * 3 +
+        parseInt((document.getElementById('omg-s2') as HTMLInputElement).value) * 2 +
+        parseInt((document.getElementById('omg-s1') as HTMLInputElement).value) * 1 +
+        parseInt((document.getElementById('omg-l3') as HTMLInputElement).value) * 3 +
+        parseInt((document.getElementById('omg-t4') as HTMLInputElement).value) * 4;
+
+      const isValid = (blocks * 2.5) <= (w * h) && blocks > 0;
+      const btn = document.getElementById('omg-launch-btn') as HTMLButtonElement;
+
+      if (isValid) {
+        document.getElementById('omg-error')!.innerText = '';
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+      } else {
+        document.getElementById('omg-error')!.innerText = blocks === 0 ? 'FLEET CANNOT BE EMPTY' : 'GRID DENSITY CRITICAL: INCREASE SIZE OR REDUCE FLEET';
+        btn.style.opacity = '0.5';
+        btn.style.pointerEvents = 'none';
+      }
+    };
+
+    // Bind sliders and inputs to validation check
+    ['omg-w', 'omg-h', 'omg-t', 'omg-s4', 'omg-s3', 'omg-s2', 'omg-s1', 'omg-l3', 'omg-t4'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', updateOmegaValidation);
+    });
+
+    this.ctx.ui.onClick('#omg-launch-btn', () => {
+      const inv: string[] = [];
+      const add = (id: string, type: string) => {
+        const count = parseInt((document.getElementById(id) as HTMLInputElement).value);
+        for (let i = 0; i < count; i++) inv.push(type);
+      };
+      add('omg-s4', '4'); add('omg-s3', '3'); add('omg-s2', '2'); add('omg-s1', '1');
+      add('omg-l3', 'L3'); add('omg-t4', 'T4');
+
+      const config = {
+        w: parseInt((document.getElementById('omg-w') as HTMLInputElement).value),
+        h: parseInt((document.getElementById('omg-h') as HTMLInputElement).value),
+        time: parseInt((document.getElementById('omg-t') as HTMLInputElement).value),
+        inventory: inv
+      };
+
+      this.ctx.ui.hide('omega-modal');
+      this.ctx.sceneManager.transitionTo(PlayScene, { resume: false, vsCpu: false, customConfig: config }, true);
+    });
 
     // Resume uses data from storage directly inside PlayScene
     this.ctx.ui.onClick('#resume-btn', () => {

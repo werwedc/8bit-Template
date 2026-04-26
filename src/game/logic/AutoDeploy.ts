@@ -6,7 +6,7 @@ import type { BoardState } from './BoardState';
  * Attempts to randomly place all remaining ships. 
  * If it gets stuck (due to strict adjacency rules), it rewinds and retries.
  */
-export function autoDeployRemaining(board: BoardState, inventory: readonly number[], startIndex: number, playerId: string): boolean {
+export function autoDeployRemaining(board: BoardState, inventory: readonly string[] | readonly number[], startIndex: number, playerId: string): boolean {
     // Backup the state before we start simulating
     const originalShips = [...board.placedShips];
 
@@ -16,21 +16,21 @@ export function autoDeployRemaining(board: BoardState, inventory: readonly numbe
 
         for (let i = startIndex; i < inventory.length; i++) {
             // TypeScript strict check handling
-            const length = inventory[i];
-            if (length === undefined) continue;
+            const type = inventory[i];
+            if (type === undefined) continue;
 
-            const ship = new Ship(`ship_${playerId}_${i}`, length);
+            const ship = new Ship(`ship_${playerId}_${i}`, type);
+
             const validPlacements = [];
 
             // Scan the board for every physically valid placement for this ship
+            // Scan the board for every physically valid placement for this ship
             for (let x = 0; x < board.width; x++) {
                 for (let y = 0; y < board.height; y++) {
-                    if (board.canPlaceShip(ship, x, y, Orientation.HORIZONTAL)) {
-                        validPlacements.push({ x, y, o: Orientation.HORIZONTAL });
-                    }
-                    if (board.canPlaceShip(ship, x, y, Orientation.VERTICAL)) {
-                        validPlacements.push({ x, y, o: Orientation.VERTICAL });
-                    }
+                    if (board.canPlaceShip(ship, x, y, Orientation.UP)) validPlacements.push({ x, y, o: Orientation.UP });
+                    if (board.canPlaceShip(ship, x, y, Orientation.RIGHT)) validPlacements.push({ x, y, o: Orientation.RIGHT });
+                    if (board.canPlaceShip(ship, x, y, Orientation.DOWN)) validPlacements.push({ x, y, o: Orientation.DOWN });
+                    if (board.canPlaceShip(ship, x, y, Orientation.LEFT)) validPlacements.push({ x, y, o: Orientation.LEFT });
                 }
             }
 

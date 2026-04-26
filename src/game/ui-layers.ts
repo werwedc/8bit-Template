@@ -10,6 +10,7 @@ export function registerUILayers(ui: UIManager): void {
       .play-btn:hover { background-color: #00ffff !important; color: #000000 !important; box-shadow: 0 0 25px rgba(0, 255, 255, 0.8) !important; font-weight: bold; }
       #resume-btn:hover { background-color: rgba(58,12,210,0.8) !important; color: #ffffff !important; border-color: #00ffff !important; box-shadow: 0 0 15px rgba(0, 255, 255, 0.5) !important; }
       #stats-btn:hover { color: #00ffff !important; text-shadow: 0 0 8px rgba(0, 255, 255, 0.6); }
+      #play-omega-btn:hover { background-color: #ff0055 !important; color: #000000 !important; box-shadow: 0 0 25px rgba(255, 0, 85, 0.8) !important; font-weight: bold; }
     </style>
     
     <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: transparent; background-image: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.95) 100%), repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, #3a0cd2 2px, #3a0cd2 6px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; pointer-events: auto;">
@@ -30,6 +31,7 @@ export function registerUILayers(ui: UIManager): void {
       </div>
 
       <!-- Game Modes Container -->
+            <!-- Game Modes Container -->
       <div style="display: flex; gap: 40px; justify-content: center;">
         
         <!-- 1 Player Card -->
@@ -48,7 +50,16 @@ export function registerUILayers(ui: UIManager): void {
           <button class="menu-btn play-btn" id="play-pvp-btn" style="width: 100%; background: transparent; border: 2px solid #00ffff; color: #ffffff; padding: 12px 0; font-size: 14px; letter-spacing: 4px; cursor: pointer; transition: all 0.15s;">DEPLOY VS HUMAN</button>
         </div>
 
+        <!-- Omega Protocol Card -->
+        <div class="mode-card" style="border-color: #ff0055; box-shadow: 0 0 20px rgba(255,0,85,0.2);">
+          <h2 style="color: #ff0055; font-size: 24px; letter-spacing: 8px; margin: 0 0 12px 0; text-shadow: 0 0 15px rgba(255,0,85,0.8); font-weight: 400; margin-right: -8px;">OMEGA</h2>
+          <div style="width: 100%; height: 2px; background-color: #ff0055; box-shadow: 0 0 10px #ff0055; margin-bottom: 25px;"></div>
+          <p style="color: #e0e0e0; font-size: 14px; text-align: center; line-height: 1.8; margin: 0 0 30px 0;">Experimental PVP combat.<br>Custom shapes & grids.</p>  
+          <button class="menu-btn play-btn" id="play-omega-btn" style="width: 100%; background: transparent; border: 2px solid #ff0055; color: #ffffff; padding: 12px 0; font-size: 14px; letter-spacing: 4px; cursor: pointer; transition: all 0.15s;">INITIATE OMEGA</button>
+        </div>
+
       </div>
+
       
       <div style="display: flex; gap: 30px; margin-top: 50px; pointer-events: auto;">
         <button class="menu-btn" id="settings-btn" style="background: transparent; border: none; color: #666666; font-size: 13px; letter-spacing: 2px; text-decoration: underline; cursor: pointer;">SETTINGS</button>
@@ -219,5 +230,45 @@ export function registerUILayers(ui: UIManager): void {
     </div>`
   );
 
+  ui.addLayer('omega-modal', `
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 200; pointer-events: auto;">
+      <div style="border: 2px solid #ff0055; background: rgba(20,0,5,0.9); padding: 40px 60px; text-align: center; box-shadow: 0 0 30px rgba(255,0,85,0.4); width: 600px;">
+        <h2 style="color: #ff0055; font-family: 'Orbitron', sans-serif; font-size: 32px; letter-spacing: 8px; margin-bottom: 30px; text-shadow: 0 0 10px #ff0055;">OMEGA PROTOCOL</h2>
+        
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+          <div style="text-align: left; color: #fff;">
+            <div>GRID WIDTH: <span id="omg-w-val" style="color:#00ffff">10</span></div>
+            <input type="range" id="omg-w" min="5" max="12" value="10" style="width: 150px; cursor: pointer;">
+          </div>
+          <div style="text-align: right; color: #fff;">
+            <div>GRID HEIGHT: <span id="omg-h-val" style="color:#00ffff">10</span></div>
+            <input type="range" id="omg-h" min="5" max="12" value="10" style="width: 150px; cursor: pointer;">
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 30px; text-align: center; color: #fff;">
+          <div>TURN TIMER (SEC): <span id="omg-t-val" style="color:#00ffff">30</span></div>
+          <input type="range" id="omg-t" min="10" max="60" step="5" value="30" style="width: 300px; cursor: pointer;">
+        </div>
+        
+        <div style="color: #ff0055; margin-bottom: 10px; font-family: 'Orbitron', sans-serif;">FLEET COMPOSITION</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 30px; color: #fff;">
+          <div>Std 4: <input type="number" id="omg-s4" min="0" max="5" value="1" style="width:40px; background:#000; color:#fff; border:1px solid #ff0055;"></div>
+          <div>Std 3: <input type="number" id="omg-s3" min="0" max="5" value="2" style="width:40px; background:#000; color:#fff; border:1px solid #ff0055;"></div>
+          <div>Std 2: <input type="number" id="omg-s2" min="0" max="5" value="3" style="width:40px; background:#000; color:#fff; border:1px solid #ff0055;"></div>
+          <div>Std 1: <input type="number" id="omg-s1" min="0" max="5" value="4" style="width:40px; background:#000; color:#fff; border:1px solid #ff0055;"></div>
+          <div>Corner: <input type="number" id="omg-l3" min="0" max="5" value="1" style="width:40px; background:#000; color:#fff; border:1px solid #ff0055;"></div>
+          <div>T-Shape: <input type="number" id="omg-t4" min="0" max="5" value="1" style="width:40px; background:#000; color:#fff; border:1px solid #ff0055;"></div>
+        </div>
+        
+        <div id="omg-error" style="color: #ff0055; font-size: 12px; margin-bottom: 15px; height: 15px; text-transform: uppercase;"></div>
+        
+        <div style="display: flex; gap: 20px; justify-content: center;">
+          <button class="menu-btn" id="omg-cancel-btn" style="background: transparent; border: 1px solid #666; color: #aaa; padding: 10px 30px; font-size: 14px; letter-spacing: 2px; cursor: pointer;">CANCEL</button>
+          <button class="menu-btn" id="omg-launch-btn" style="background: transparent; border: 2px solid #ff0055; color: #fff; padding: 10px 40px; font-size: 16px; letter-spacing: 4px; cursor: pointer; box-shadow: inset 0 0 10px rgba(255,0,85,0.3);">ENGAGE</button>
+        </div>
+      </div>
+    </div>
+  `);
 
 }

@@ -21,7 +21,7 @@ export function deserializeGame(data: string): SaveData | null {
         const hydrateBoard = (target: BoardState, source: any) => {
             target.grid = source.grid;
             target.placedShips = source.placedShips.map((ps: any) => {
-                const ship = new Ship(ps.ship.id, ps.ship.shape.length);
+                const ship = new Ship(ps.ship.id, ps.ship.type || ps.ship.shape.length.toString());
                 ship.hits = ps.ship.hits;
                 return { ship, x: ps.x, y: ps.y, orientation: ps.orientation };
             });

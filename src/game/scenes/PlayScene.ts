@@ -22,7 +22,7 @@ export class PlayScene extends Scene {
   private particles!: ParticleSystem;
 
   private currentShipIndex: number = 0;
-  private currentOrientation: Orientation = Orientation.HORIZONTAL;
+  private currentOrientation: Orientation = Orientation.UP;
   private isPassingDevice: boolean = false;
 
   private lastActiveGrid: GridRenderer | null = null;
@@ -32,11 +32,15 @@ export class PlayScene extends Scene {
   private notificationTimer: ReturnType<typeof setTimeout> | null = null;
   private aiTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private customConfig: { w: number, h: number, inventory: string[], time: number } | null = null;
+  private inventory: string[] = [];
+  private turnTimeLimit: number = (this.customConfig?.time || GAME.TURN_TIME_LIMIT);
+
   constructor(private readonly ctx: AppContext) {
     super();
   }
 
-  enter(data?: { resume: boolean, vsCpu?: boolean }): void {
+  enter(data?: { resume: boolean, vsCpu?: boolean, customConfig?: any }): void {
     // Start Game Music (Teammate feature)
     this.ctx.audio.play('bgm_game');
 
@@ -46,6 +50,15 @@ export class PlayScene extends Scene {
     const bg = new Graphics();
     bg.rect(0, 0, W, H).fill({ color: PALETTE.bg });
     this.container.addChild(bg);
+
+    // 1. EXTRACT DYNAMIC CONFIG OR FALLBACK TO DEFAULTS
+    const boardW = data?.customConfig?.w || GAME.BOARD_WIDTH;
+    const boardH = data?.customConfig?.h || GAME.BOARD_HEIGHT;
+    this.inventory = data?.customConfig?.inventory || GAME.SHIP_INVENTORY.map(String);
+    this.turnTimeLimit = data?.customConfig?.time || GAME.TURN_TIME_LIMIT;
+
+    // Reset timer to the correct limit
+    this.timeLeft = this.turnTimeLimit;
 
     // -- STORAGE LOAD --
     if (data?.resume) {
@@ -62,7 +75,8 @@ export class PlayScene extends Scene {
         }
       }
     } else {
-      this.logic = new GameController(GAME.BOARD_WIDTH, GAME.BOARD_HEIGHT);
+      // 2. APPLY DYNAMIC SIZES TO NEW GAME
+      this.logic = new GameController(boardW, boardH);
       this.isVsCpu = data?.vsCpu ?? false;
       this.clearGameState();
     }
@@ -70,8 +84,9 @@ export class PlayScene extends Scene {
     this.p1Grid = new GridRenderer(this.logic.p1Board, true);
     this.p2Grid = new GridRenderer(this.logic.p2Board, true);
 
-    const gridW = GAME.BOARD_WIDTH * GAME.TILE_SIZE;
-    const gridH = GAME.BOARD_HEIGHT * GAME.TILE_SIZE;
+    // 3. APPLY DYNAMIC SIZES TO LAYOUT MATH
+    const gridW = boardW * GAME.TILE_SIZE;
+    const gridH = boardH * GAME.TILE_SIZE;
     const gap = 100;
     const totalW = gridW * 2 + gap;
     const startX = Math.floor((W - totalW) / 2);
@@ -83,6 +98,9 @@ export class PlayScene extends Scene {
     const labelStyle = new TextStyle({
       fontFamily: "'Orbitron', sans-serif", fontSize: 42, fill: PALETTE.fg, fontWeight: '900', letterSpacing: 6
     });
+
+    // ... (The rest of the enter method continues here with p1Label, etc.)
+
 
     const p1Label = new Text({ text: 'PLAYER 1', style: labelStyle });
     p1Label.anchor.set(0.5, 1);
@@ -193,7 +211,7 @@ export class PlayScene extends Scene {
 
     this.ctx.ui.onClick('#ready-btn', () => {
       this.isPassingDevice = false;
-      this.timeLeft = GAME.TURN_TIME_LIMIT;
+      this.timeLeft = (this.customConfig?.time || GAME.TURN_TIME_LIMIT);
       this.updatePhaseVisuals();
     });
 
@@ -298,11 +316,11 @@ export class PlayScene extends Scene {
   }
 
   private rotateShip() {
-    this.currentOrientation = this.currentOrientation === Orientation.HORIZONTAL
-      ? Orientation.VERTICAL
-      : Orientation.HORIZONTAL;
+    // Cycle through 0, 1, 2, 3 (UP, RIGHT, DOWN, LEFT)
+    this.currentOrientation = (this.currentOrientation + 1) % 4;
     this.updateHover();
   }
+
 
   update(dt: number): void {
     if (this.ctx.input.isPressed('Escape')) {
@@ -384,7 +402,7 @@ export class PlayScene extends Scene {
     const board = (phase === TurnPhase.P1_PLACEMENT || phase === TurnPhase.P2_TURN) ? this.logic.p1Board : this.logic.p2Board;
 
     if (phase === TurnPhase.P1_PLACEMENT || phase === TurnPhase.P2_PLACEMENT) {
-      const shipLength = GAME.SHIP_INVENTORY[this.currentShipIndex];
+      const shipLength = this.inventory[this.currentShipIndex];
       if (shipLength === undefined) return;
 
       const tempShip = new Ship('temp', shipLength);
@@ -404,7 +422,7 @@ export class PlayScene extends Scene {
     const phase = this.logic.phase;
 
     if (phase === TurnPhase.P1_PLACEMENT || phase === TurnPhase.P2_PLACEMENT) {
-      const shipLength = GAME.SHIP_INVENTORY[this.currentShipIndex];
+      const shipLength = this.inventory[this.currentShipIndex];
       if (shipLength === undefined) return;
 
       const tempShip = new Ship('temp', shipLength);
@@ -468,7 +486,7 @@ export class PlayScene extends Scene {
     } else if (outcome.result === ShotResult.MISS) {
       setTimeout(() => {
         if (this.isVsCpu) {
-          this.timeLeft = GAME.TURN_TIME_LIMIT;
+          this.timeLeft = (this.customConfig?.time || GAME.TURN_TIME_LIMIT);
           this.updatePhaseVisuals();
           if (this.logic.phase === TurnPhase.P2_TURN) this.scheduleAITurn();
         } else {
@@ -477,7 +495,7 @@ export class PlayScene extends Scene {
         }
       }, 1000);
     } else {
-      this.timeLeft = GAME.TURN_TIME_LIMIT;
+      this.timeLeft = (this.customConfig?.time || GAME.TURN_TIME_LIMIT);
       this.updateHover();
       if (this.isVsCpu && this.logic.phase === TurnPhase.P2_TURN) this.scheduleAITurn();
     }
@@ -496,10 +514,24 @@ export class PlayScene extends Scene {
   }
 
   private deployAIFleet() {
-    autoDeployRemaining(this.logic.p2Board, GAME.SHIP_INVENTORY, 0, 'p2');
+    // CRITICAL FIX: Use this.inventory, not the hardcoded GAME.SHIP_INVENTORY
+    const success = autoDeployRemaining(this.logic.p2Board, this.inventory, 0, 'p2');
+
+    if (!success) {
+      // The AI couldn't fit its ships! Abort the game gracefully.
+      this.showNotification('SYSTEM ERROR: AI DEPLOYMENT FAILED. ADJUST OMEGA SETTINGS.', true);
+      this.clearGameState();
+
+      // Wait for the notification to be read, then boot to menu
+      setTimeout(() => {
+        this.ctx.sceneManager.transitionTo(MenuScene);
+      }, 3000);
+      return;
+    }
+
     this.logic.finishPlacementPhase();
     this.saveGameState();
-    this.timeLeft = GAME.TURN_TIME_LIMIT;
+    this.timeLeft = this.turnTimeLimit;
     this.updatePhaseVisuals();
   }
 
@@ -510,22 +542,31 @@ export class PlayScene extends Scene {
     const board = phase === TurnPhase.P1_PLACEMENT ? this.logic.p1Board : this.logic.p2Board;
     const playerId = phase === TurnPhase.P1_PLACEMENT ? 'p1' : 'p2';
 
-    const success = autoDeployRemaining(board, GAME.SHIP_INVENTORY, this.currentShipIndex, playerId);
+    // CRITICAL FIX: Use this.inventory
+    const success = autoDeployRemaining(board, this.inventory, this.currentShipIndex, playerId);
 
     if (success) {
       this.getExpectedGrid()?.renderState();
-      this.currentShipIndex = GAME.SHIP_INVENTORY.length; // Force advance
+      this.currentShipIndex = this.inventory.length; // Force advance
       this.advancePlacementState();
     } else {
-      this.showNotification('DEPLOYMENT FAILED: GRID TOO CONGESTED', true);
+      // The human's auto-deploy failed due to lack of space!
+      this.showNotification('DEPLOYMENT FAILED: GRID TOO CONGESTED. ABORTING...', true);
+      this.clearGameState();
+
+      // Wait for the notification to be read, then boot to menu
+      setTimeout(() => {
+        this.ctx.sceneManager.transitionTo(MenuScene);
+      }, 3000);
     }
   }
+
 
   private advancePlacementState() {
     this.currentShipIndex++;
     this.getExpectedGrid()?.renderState();
 
-    if (this.currentShipIndex >= GAME.SHIP_INVENTORY.length) {
+    if (this.currentShipIndex >= this.inventory.length) {
       this.currentShipIndex = 0;
       this.logic.finishPlacementPhase();
 
@@ -537,7 +578,7 @@ export class PlayScene extends Scene {
         this.updatePhaseVisuals();
       }
     } else {
-      this.timeLeft = GAME.TURN_TIME_LIMIT;
+      this.timeLeft = (this.customConfig?.time || GAME.TURN_TIME_LIMIT);
       this.updateHover();
     }
   }
