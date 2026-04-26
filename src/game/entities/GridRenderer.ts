@@ -97,7 +97,7 @@ export class GridRenderer extends Container {
 
         // 2. Draw Hits, Misses, Sunk, and Inactive Cells
         this.hitMissLayer.clear();
-        
+
         // Pass A: Draw Misses (Crosses) and Inactive (Dots) from Grid Data
         for (let y = 0; y < this.boardState.height; y++) {
             const row = this.boardState.grid[y];
@@ -112,15 +112,15 @@ export class GridRenderer extends Container {
                     // ── NEW: Crisp Cross for a Miss ──
                     const crossSize = TS * 0.25;
                     this.hitMissLayer.moveTo(cx - crossSize, cy - crossSize)
-                                     .lineTo(cx + crossSize, cy + crossSize)
-                                     .moveTo(cx + crossSize, cy - crossSize)
-                                     .lineTo(cx - crossSize, cy + crossSize)
-                                     .stroke({ color: PALETTE.miss, width: 4, cap: 'round' });
+                        .lineTo(cx + crossSize, cy + crossSize)
+                        .moveTo(cx + crossSize, cy - crossSize)
+                        .lineTo(cx - crossSize, cy + crossSize)
+                        .stroke({ color: PALETTE.miss, width: 4, cap: 'round' });
                 } else if (cell === CellState.INACTIVE) {
                     // Small, crisp white dot to represent cleared water
-                    const dotSize = 6; 
+                    const dotSize = 6;
                     this.hitMissLayer.rect(cx - dotSize / 2, cy - dotSize / 2, dotSize, dotSize)
-                                     .fill({ color: 0xffffff, alpha: 0.6 });
+                        .fill({ color: 0xffffff, alpha: 0.6 });
                 }
                 // Note: We skip CellState.HIT here, because we handle it in Pass B!
             }
@@ -130,9 +130,9 @@ export class GridRenderer extends Container {
         for (const ps of this.boardState.placedShips) {
             const ship = ps.ship;
             const coords = ship.getAbsoluteCoords(ps.x, ps.y, ps.orientation);
-            
+
             // Math for 60% Area: sqrt(0.60) is approx 0.77 length.
-            const hitSize = TS * 0.77; 
+            const hitSize = TS * 0.77;
             const margin = (TS - hitSize) / 2;
 
             if (ship.isSunk) {
@@ -156,21 +156,21 @@ export class GridRenderer extends Container {
                     } else {
                         // The hit streak broke! Draw the rectangle for the streak we just calculated
                         if (currentStreak > 0) {
-                            const startPt = coords[streakStart];
-                            
+                            const startPt = coords[streakStart]!;
+
                             // Width/Height extends based on the length of the streak
-                            const rectW = ps.orientation === Orientation.HORIZONTAL 
-                                ? (TS * currentStreak) - (margin * 2) 
+                            const rectW = ps.orientation === Orientation.HORIZONTAL
+                                ? (TS * currentStreak) - (margin * 2)
                                 : hitSize;
-                            const rectH = ps.orientation === Orientation.VERTICAL 
-                                ? (TS * currentStreak) - (margin * 2) 
+                            const rectH = ps.orientation === Orientation.VERTICAL
+                                ? (TS * currentStreak) - (margin * 2)
                                 : hitSize;
-                                
+
                             const startX = startPt.x * TS + margin;
                             const startY = startPt.y * TS + margin;
 
                             this.hitMissLayer.rect(startX, startY, rectW, rectH).fill({ color: 0xffcc00 }); // Yellow
-                            
+
                             currentStreak = 0; // Reset streak
                         }
                     }

@@ -236,20 +236,41 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
+/* Override engine default glassmorphism for Battleship theme */
+.glassmorphism {
+  border-radius: 4px !important;
+  /* Reduced rounding */
+  border: 1px solid #3a0cd2 !important;
+  /* Add tactical violet border */
+  box-shadow: 0 0 30px rgba(58, 12, 210, 0.3) !important;
+  background: rgba(5, 0, 16, 0.85) !important;
+  /* Dark violet tint instead of plain glass */
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Make sure the header matches the new sharp corners */
+.settings-header {
+  border-top-left-radius: 4px !important;
+  border-top-right-radius: 4px !important;
+  border-bottom: 1px solid #3a0cd2 !important;
+}
+
+.settings-header h2 {
+  font-family: 'Orbitron', sans-serif !important;
+  color: #00ffff !important;
+  letter-spacing: 4px !important;
+  text-shadow: 0 0 10px #00ffff !important;
+}
+
 .settings-close {
-  background: transparent;
-  border: none;
-  color: #ddeeff;
-  font-size: 28px;
-  cursor: pointer;
-  line-height: 1;
-  transition: color 0.2s, transform 0.2s;
+  color: #00ffff !important;
 }
 
 .settings-close:hover {
-  color: #ff4488;
-  transform: scale(1.1);
+  color: #fff !important;
+  text-shadow: 0 0 10px #fff !important;
 }
+
 
 .settings-body {
   display: flex;

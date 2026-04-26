@@ -23,25 +23,29 @@ export class MenuScene extends Scene {
 
     this.ctx.ui.show('main-menu');
 
-    const hasSave = this.ctx.storage.load<string | null>('battleship_save', null) !== null;
-
-    if (hasSave) {
-      this.ctx.ui.setText('#menu-subtitle', 'ACTIVE LINK DETECTED\nAWAITING ORDERS');
-      const resumeBtn = document.getElementById('resume-btn');
-      if (resumeBtn) resumeBtn.style.display = 'block';
+    const savedDataStr = this.ctx.storage.load<string | null>('battleship_save', null);
+    if (savedDataStr) {
+      const resumeWrapper = document.getElementById('resume-wrapper');
+      if (resumeWrapper) resumeWrapper.style.display = 'block';
     }
 
-    this.ctx.ui.onClick('#new-game-btn', () => {
-      this.ctx.sceneManager.transitionTo(PlayScene, { resume: false }, true);
+    // CPU Mode
+    this.ctx.ui.onClick('#play-cpu-btn', () => {
+      this.ctx.sceneManager.transitionTo(PlayScene, { resume: false, vsCpu: true }, true);
     });
 
+    // PVP Mode
+    this.ctx.ui.onClick('#play-pvp-btn', () => {
+      this.ctx.sceneManager.transitionTo(PlayScene, { resume: false, vsCpu: false }, true);
+    });
+
+    // Resume uses data from storage directly inside PlayScene
     this.ctx.ui.onClick('#resume-btn', () => {
       this.ctx.sceneManager.transitionTo(PlayScene, { resume: true }, true);
     });
 
     this.ctx.ui.onClick('#stats-btn', () => {
       this.ctx.ui.show('stats-modal');
-      // CORRECT STORAGE API for Stats
       this.ctx.ui.setText('#stat-p1', this.ctx.storage.load<number>('stats_p1_wins', 0).toString());
       this.ctx.ui.setText('#stat-p2', this.ctx.storage.load<number>('stats_p2_wins', 0).toString());
       this.ctx.ui.setText('#stat-games', this.ctx.storage.load<number>('stats_games_played', 0).toString());
