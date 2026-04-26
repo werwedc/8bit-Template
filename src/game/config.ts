@@ -4,7 +4,7 @@ import type { RetroFilterConfig } from '../core/filters';
 // 'retro'      — low-res RenderTexture, integer-upscaled. Classic chunky pixels.
 // 'native'     — fractional scale + devicePixelRatio. Retro art, crisp on HiDPI.
 // 'native-res' — RESOLUTION rewritten to device physical pixels. 1:1, no scaling.
-export const RENDER_MODE: 'retro' | 'native' | 'native-res' = 'retro';
+export const RENDER_MODE: 'retro' | 'native' | 'native-res' = 'native';
 
 // ─── Resolution ─────────────────────────────────────────────────────────────
 // The logical coordinate space for all game objects.
@@ -46,6 +46,7 @@ export const FILTER_PRESETS: { name: string; config: RetroFilterConfig }[] = [
   { name: 'minimal', config: { noCRT: true, bloomThreshold: 0.6, bloomScale: 0.5 } },
   { name: 'crt', config: { bloomThreshold: 0.5, bloomScale: 0.6, crtLineContrast: 0.12, crtVignetting: 0.25, rgbSplitOffset: 0 } },
   { name: 'full', config: { bloomThreshold: 0.45, bloomScale: 0.9, crtLineContrast: 0.14, crtVignetting: 0.28 } },
+  { name: 'smooth-fx', config: { bloomThreshold: 0.35, bloomScale: 1.2, crtLineContrast: 0, crtVignetting: 0.35, rgbSplitOffset: 3, noCRT: true } },
 ];
 
-export const DEFAULT_FILTER_PRESET = 3;
+export const DEFAULT_FILTER_PRESET = 4;

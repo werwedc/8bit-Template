@@ -1,4 +1,4 @@
-import { Graphics } from 'pixi.js';
+import { Graphics, Text, TextStyle } from 'pixi.js';
 import { Scene } from '../../core/scene';
 import type { AppContext } from '../../core/types';
 import { GAME, PALETTE, RESOLUTION } from '../config';
@@ -19,7 +19,6 @@ export class PlayScene extends Scene {
   private currentOrientation: Orientation = Orientation.HORIZONTAL;
   private isPassingDevice: boolean = false;
 
-  // Track pointer state for ghost ship drawing
   private lastActiveGrid: GridRenderer | null = null;
   private lastGridCoords: { x: number; y: number } | null = null;
 
@@ -40,21 +39,45 @@ export class PlayScene extends Scene {
     this.p1Grid = new GridRenderer(this.logic.p1Board, true);
     this.p2Grid = new GridRenderer(this.logic.p2Board, true);
 
-    const gridWidth = GAME.BOARD_WIDTH * GAME.TILE_SIZE;
-    const centerX = Math.floor((W - gridWidth) / 2);
-    const centerY = Math.floor((H - GAME.BOARD_HEIGHT * GAME.TILE_SIZE) / 2);
+    // Layout: Side-by-side
+    const gridW = GAME.BOARD_WIDTH * GAME.TILE_SIZE;
+    const gridH = GAME.BOARD_HEIGHT * GAME.TILE_SIZE;
+    const gap = 20;
+    const totalW = gridW * 2 + gap;
 
-    this.p1Grid.position.set(centerX, centerY);
-    this.p2Grid.position.set(centerX, centerY);
+    const startX = Math.floor((W - totalW) / 2);
+    const startY = Math.floor((H - gridH) / 2) + 5; // Pushed down slightly for HUD and labels
 
-    // Bind PixiJS native pointer events
-    this.bindGridEvents(this.p1Grid, this.logic.p1Board);
-    this.bindGridEvents(this.p2Grid, this.logic.p2Board);
+    this.p1Grid.position.set(startX, startY);
+    this.p2Grid.position.set(startX + gridW + gap, startY);
 
+    // Add Player Labels above boards (using high-res text trick)
+    const labelStyle = new TextStyle({
+      fontFamily: "'Overpass Mono', monospace", // <-- Change this line
+      fontSize: 32,
+      fill: PALETTE.fg,
+      fontWeight: 'bold'
+    });
+
+
+    const p1Label = new Text({ text: 'PLAYER 1', style: labelStyle });
+    p1Label.scale.set(0.25);
+    p1Label.anchor.set(0.5, 1);
+    p1Label.position.set(startX + gridW / 2, startY - 5);
+
+    const p2Label = new Text({ text: 'PLAYER 2', style: labelStyle });
+    p2Label.scale.set(0.25);
+    p2Label.anchor.set(0.5, 1);
+    p2Label.position.set(startX + gridW + gap + gridW / 2, startY - 5);
+
+    this.container.addChild(p1Label);
+    this.container.addChild(p2Label);
     this.container.addChild(this.p1Grid);
     this.container.addChild(this.p2Grid);
 
-    // Disable browser context menu on right click to allow for easy rotation
+    this.bindGridEvents(this.p1Grid, this.logic.p1Board);
+    this.bindGridEvents(this.p2Grid, this.logic.p2Board);
+
     document.addEventListener('contextmenu', this.preventContextMenu);
 
     this.setupUIBindings();
@@ -72,8 +95,6 @@ export class PlayScene extends Scene {
   };
 
   private bindGridEvents(grid: GridRenderer, board: BoardState) {
-    grid.eventMode = 'static'; // Make interactive in PixiJS
-
     grid.on('pointermove', (e) => {
       const local = grid.toLocal(e.global);
       this.lastGridCoords = grid.getGridCoords(local.x, local.y);
@@ -88,9 +109,9 @@ export class PlayScene extends Scene {
     });
 
     grid.on('pointerdown', (e) => {
-      if (e.button === 0) { // Left click
+      if (e.button === 0) {
         this.handleInteraction(grid, board);
-      } else if (e.button === 2) { // Right click
+      } else if (e.button === 2) {
         this.rotateShip();
       }
     });
@@ -120,10 +141,13 @@ export class PlayScene extends Scene {
     this.lastGridCoords = null;
 
     if (this.isPassingDevice) {
-      this.p1Grid.visible = false;
-      this.p2Grid.visible = false;
-      this.ctx.ui.show('pass-device');
+      // Hide ships on both boards just to be safe during pass device
+      this.p1Grid.setShowHiddenShips(false);
+      this.p2Grid.setShowHiddenShips(false);
+      this.p1Grid.eventMode = 'none';
+      this.p2Grid.eventMode = 'none';
 
+      this.ctx.ui.show('pass-device');
       const nextPlayer = (this.logic.phase === TurnPhase.P2_PLACEMENT || this.logic.phase === TurnPhase.P2_TURN) ? "Player 2" : "Player 1";
       this.ctx.ui.setText('#pass-device-text', `${nextPlayer}'s Turn`);
       return;
@@ -131,47 +155,53 @@ export class PlayScene extends Scene {
 
     switch (this.logic.phase) {
       case TurnPhase.P1_PLACEMENT:
-        this.p1Grid.visible = true;
-        this.p2Grid.visible = false;
+        this.p1Grid.setShowHiddenShips(true);
+        this.p2Grid.setShowHiddenShips(false);
+        this.p1Grid.eventMode = 'static'; // Allow interacting with own board
+        this.p2Grid.eventMode = 'none';   // Disable enemy board
+
         this.ctx.ui.show('placement-hud');
         this.ctx.ui.setText('#placement-text', 'Player 1: Place your ships');
         break;
 
       case TurnPhase.P2_PLACEMENT:
-        this.p1Grid.visible = false;
-        this.p2Grid.visible = true;
+        this.p1Grid.setShowHiddenShips(false); // Hide P1's placed ships!
+        this.p2Grid.setShowHiddenShips(true);
+        this.p1Grid.eventMode = 'none';
+        this.p2Grid.eventMode = 'static';
+
         this.ctx.ui.show('placement-hud');
         this.ctx.ui.setText('#placement-text', 'Player 2: Place your ships');
         break;
 
       case TurnPhase.P1_TURN:
-        this.p2Grid['showHiddenShips'] = false;
-        this.p2Grid.renderState();
-        this.p1Grid.visible = false;
-        this.p2Grid.visible = true;
+        // P1 sees their own ships, P2's are hidden
+        this.p1Grid.setShowHiddenShips(true);
+        this.p2Grid.setShowHiddenShips(false);
+        this.p1Grid.eventMode = 'none';   // Can't shoot own board
+        this.p2Grid.eventMode = 'static'; // Target enemy board
+
         this.ctx.ui.show('combat-hud');
         this.ctx.ui.setText('#turn-indicator', 'Player 1');
         break;
 
       case TurnPhase.P2_TURN:
-        this.p1Grid['showHiddenShips'] = false;
-        this.p1Grid.renderState();
-        this.p1Grid.visible = true;
-        this.p2Grid.visible = false;
+        // P2 sees their own ships, P1's are hidden
+        this.p1Grid.setShowHiddenShips(false);
+        this.p2Grid.setShowHiddenShips(true);
+        this.p1Grid.eventMode = 'static'; // Target enemy board
+        this.p2Grid.eventMode = 'none';   // Can't shoot own board
+
         this.ctx.ui.show('combat-hud');
         this.ctx.ui.setText('#turn-indicator', 'Player 2');
         break;
 
       case TurnPhase.GAME_OVER:
-        this.p1Grid.visible = true;
-        this.p1Grid.position.x = 20;
-        this.p1Grid['showHiddenShips'] = true;
-        this.p1Grid.renderState();
-
-        this.p2Grid.visible = true;
-        this.p2Grid.position.x = RESOLUTION.w - GAME.BOARD_WIDTH * GAME.TILE_SIZE - 20;
-        this.p2Grid['showHiddenShips'] = true;
-        this.p2Grid.renderState();
+        // Reveal everything
+        this.p1Grid.setShowHiddenShips(true);
+        this.p2Grid.setShowHiddenShips(true);
+        this.p1Grid.eventMode = 'none';
+        this.p2Grid.eventMode = 'none';
 
         this.ctx.ui.show('game-over');
         this.ctx.ui.setText('#gameover-text', `PLAYER ${this.logic.winner} WINS!`);
@@ -192,9 +222,19 @@ export class PlayScene extends Scene {
       return;
     }
 
-    // Spacebar to rotate
     if (!this.isPassingDevice && this.ctx.input.isPressed('Space')) {
       this.rotateShip();
+    }
+  }
+
+  // Helper to determine which grid the player SHOULD be interacting with
+  private getExpectedGrid(): GridRenderer | null {
+    switch (this.logic.phase) {
+      case TurnPhase.P1_PLACEMENT: return this.p1Grid;
+      case TurnPhase.P2_PLACEMENT: return this.p2Grid;
+      case TurnPhase.P1_TURN: return this.p2Grid; // P1 targets P2
+      case TurnPhase.P2_TURN: return this.p1Grid; // P2 targets P1
+      default: return null;
     }
   }
 
@@ -204,17 +244,15 @@ export class PlayScene extends Scene {
 
     if (!this.lastActiveGrid || !this.lastGridCoords || this.isPassingDevice || this.logic.phase === TurnPhase.GAME_OVER) return;
 
+    const expectedGrid = this.getExpectedGrid();
+    if (this.lastActiveGrid !== expectedGrid) return; // Ignore hover on the wrong board
+
     const phase = this.logic.phase;
-    const expectedGrid = (phase === TurnPhase.P1_PLACEMENT || phase === TurnPhase.P2_TURN) ? this.p1Grid : this.p2Grid;
-
-    // Only draw hover on the board you are currently supposed to be interacting with
-    if (this.lastActiveGrid !== expectedGrid) return;
-
     const board = (phase === TurnPhase.P1_PLACEMENT || phase === TurnPhase.P2_TURN) ? this.logic.p1Board : this.logic.p2Board;
 
     if (phase === TurnPhase.P1_PLACEMENT || phase === TurnPhase.P2_PLACEMENT) {
       const shipLength = GAME.SHIP_INVENTORY[this.currentShipIndex];
-      if (shipLength === undefined) return; // Strict TS check
+      if (shipLength === undefined) return;
 
       const tempShip = new Ship('temp', shipLength);
       const isValid = board.canPlaceShip(tempShip, this.lastGridCoords.x, this.lastGridCoords.y, this.currentOrientation);
@@ -227,13 +265,14 @@ export class PlayScene extends Scene {
   private handleInteraction(grid: GridRenderer, board: BoardState) {
     if (!this.lastGridCoords || this.isPassingDevice || this.logic.phase === TurnPhase.GAME_OVER) return;
 
-    const phase = this.logic.phase;
-    const expectedGrid = (phase === TurnPhase.P1_PLACEMENT || phase === TurnPhase.P2_TURN) ? this.p1Grid : this.p2Grid;
+    const expectedGrid = this.getExpectedGrid();
     if (grid !== expectedGrid) return;
+
+    const phase = this.logic.phase;
 
     if (phase === TurnPhase.P1_PLACEMENT || phase === TurnPhase.P2_PLACEMENT) {
       const shipLength = GAME.SHIP_INVENTORY[this.currentShipIndex];
-      if (shipLength === undefined) return; // Strict TS check
+      if (shipLength === undefined) return;
 
       const tempShip = new Ship('temp', shipLength);
       const isValid = board.canPlaceShip(tempShip, this.lastGridCoords.x, this.lastGridCoords.y, this.currentOrientation);
@@ -251,12 +290,11 @@ export class PlayScene extends Scene {
           this.isPassingDevice = true;
           this.updatePhaseVisuals();
         } else {
-          this.updateHover(); // Update ghost cursor immediately for the next ship
+          this.updateHover();
         }
       }
     } else {
       // Combat Phase
-      // Replace the combat phase block in handleInteraction with this:
       const outcome = this.logic.fireShot(this.lastGridCoords.x, this.lastGridCoords.y);
 
       if (outcome.result !== ShotResult.INVALID) {
@@ -264,7 +302,6 @@ export class PlayScene extends Scene {
 
         const msgEl = document.getElementById('combat-message');
         if (msgEl) {
-          // If they hit and get another turn, tell them!
           const extraTurnText = (outcome.result === ShotResult.HIT || outcome.result === ShotResult.SUNK) ? ' - GO AGAIN!' : '';
           msgEl.innerText = outcome.result + extraTurnText;
           msgEl.style.display = 'block';
@@ -275,17 +312,14 @@ export class PlayScene extends Scene {
         if (this.logic.winner !== null) {
           this.updatePhaseVisuals();
         } else if (outcome.result === ShotResult.MISS) {
-          // They missed, pass the device after a short delay
           setTimeout(() => {
             this.isPassingDevice = true;
             this.updatePhaseVisuals();
           }, 1000);
         } else {
-          // They hit! They get to go again. Just clear the hover and wait for next click.
           this.updateHover();
         }
       }
-
     }
   }
 }

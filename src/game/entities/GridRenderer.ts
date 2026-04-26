@@ -59,10 +59,10 @@ export class GridRenderer extends Container {
         const scaleFactor = targetFontSize / baseFontSize;
 
         const labelStyle = new TextStyle({
-            fontFamily: 'monospace',
+            fontFamily: "'Overpass Mono', monospace", // <-- Change this line
             fontSize: baseFontSize,
             fill: PALETTE.fg,
-            fontWeight: 'bold' // Bold often reads better when scaled down
+            fontWeight: 'bold'
         });
 
         for (let x = 0; x < this.boardState.width; x++) {
@@ -82,6 +82,11 @@ export class GridRenderer extends Container {
             this.staticLayer.addChild(text);
         }
 
+    }
+
+    public setShowHiddenShips(show: boolean) {
+        this.showHiddenShips = show;
+        this.renderState();
     }
 
     public renderState() {

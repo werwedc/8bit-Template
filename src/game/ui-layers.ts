@@ -41,8 +41,8 @@ export function registerUILayers(ui: UIManager): void {
   ui.addLayer(
     'pass-device',
     `<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0f380f; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100;">
-      <h2 id="pass-device-text" style="color: #8bac0f; text-align: center; margin-bottom: 10px; font-family: monospace; font-size: 20px;">Player 2's Turn</h2>
-      <p style="color: #306230; font-size: 12px; margin-bottom: 20px; font-family: monospace;">Pass the device, then click ready!</p>
+      <h2 id="pass-device-text" style="color: #8bac0f; text-align: center; margin-bottom: 10px; font-size: 20px;">Player 2's Turn</h2>
+      <p style="color: #306230; font-size: 12px; margin-bottom: 20px;">Pass the device, then click ready!</p>
       <button class="menu-btn" id="ready-btn">READY</button>
     </div>`,
   );

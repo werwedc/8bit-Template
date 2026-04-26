@@ -1424,3 +1424,34 @@ this.ctx.ui.setText('#hud-score', `SCORE: ${this.score}`);
 | `` ` `` (backtick) | Toggle debug overlay (FPS, scene, object count) |
 | `F1` | Cycle filter preset (sharp → minimal → crt → full) |
 | `F2` | Cycle render mode (retro → native → native-res) |
+
+## 10. Battleship Architecture & Implementation
+
+The game logic is strictly decoupled from the PixiJS rendering layer. This ensures that features like Networked Multiplayer, AI opponents, and custom rule sets can be added later without rewriting the visual layer or input handling.
+
+### Core Logic (`src/game/logic/`)
+Pure TypeScript classes with zero knowledge of PixiJS, canvas, or screen coordinates.
+
+*   **`Ship.ts`**: Defines a ship via an array of relative coordinates (`Point[]`). By default, it generates a straight line, but this structure naturally supports custom shapes (T-shapes, L-shapes, or blocks). It tracks its own hits and calculates absolute coordinates based on a starting grid position and `Orientation`.
+*   **`BoardState.ts`**: Manages the grid.
+    *   `canPlaceShip()` handles the core Battleship placement rules: bounds checking, overlap checking, and strict adjacency checking (ships cannot touch even diagonally).
+    *   `receiveShot()` processes coordinates and returns `ShotResult` (HIT, MISS, SUNK, INVALID).
+*   **`GameController.ts`**: The state machine. Manages the `TurnPhase` (Placement -> Combat) and the active `BoardState`. 
+    *   **Rule Enforcement:** Handles the logic that a player gets an *extra turn* upon scoring a HIT or SUNK. Transitions to `GAME_OVER` when a board is wiped.
+
+### Visual Layer (`src/game/entities/`)
+PixiJS classes that read from the Core Logic to render the state.
+
+*   **`ShipVisual.ts`**: A Pixi `Container` representing a physical ship. Hooked up with `gsap` for idle bobbing and sinking animations.
+*   **`GridRenderer.ts`**: Renders the background, grid lines, coordinates, ships, and hit/miss pegs. 
+    *   **Interactions:** Handles PixiJS native pointer events (`pointermove`, `pointerdown`, `pointerleave`) on a `static` event mode.
+    *   **Ghost Cursors:** Draws valid (green) or invalid (red) highlights during placement based on `BoardState.canPlaceShip()`.
+    *   **Text Rendering:** To keep text crisp in low-res "native" modes, it renders labels at a large font size (32px) and scales the text object down using `.scale.set()`.
+    *   **Visibility Toggle:** Uses a `showHiddenShips` boolean to instantly hide/reveal ships based on whose turn it is.
+
+### Integration (`src/game/scenes/PlayScene.ts`)
+The glue tying logic and visuals together.
+*   Initializes the `GameController` and two `GridRenderer`s.
+*   Manages the hot-seat multiplayer view, intercepting turns with a `pass-device` HTML UI overlay to prevent players from seeing each other's boards.
+*   Captures right-click and spacebar inputs for ship rotation.
+*   Passes grid coordinates clicked by the user into the `GameController`, then forces a visual update on the active `GridRenderer`.
