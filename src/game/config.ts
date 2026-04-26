@@ -21,7 +21,7 @@ export const PALETTE = {
   ship: 0x00ffff,    // Bright Cyan ships
   hit: 0xff0055,     // Neon Pink/Red for hits
   miss: 0x3a0cd2,    // Violet for misses (blends into the grid)
-  valid: 0x00ff00,   // Neon Green for placement
+  valid: 0x00df85,   // <-- CHANGED: A cooler, muted neon mint green
   invalid: 0xff0055, // Neon Pink for bad placement
   grid: 0x3a0cd2     // Dark Violet grid lines
 } as const;
@@ -40,6 +40,7 @@ export const GAME = {
   SHIP_INVENTORY: [4, 3, 3, 2, 2, 2, 1, 1, 1, 1],
   // Scaled up from 12px to 64px to fit the new 1080p resolution!
   TILE_SIZE: 64,
+  TURN_TIME_LIMIT: 30, // seconds per turn  
 } as const;
 
 

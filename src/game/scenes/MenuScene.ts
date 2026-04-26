@@ -1,30 +1,101 @@
+import { Graphics } from 'pixi.js';
 import { Scene } from '../../core/scene';
 import type { AppContext } from '../../core/types';
-import { TITLE } from '../config';
+import { RESOLUTION } from '../config';
 import { PlayScene } from './PlayScene';
 
+interface RadarDot { x: number; y: number; angle: number; brightness: number; }
+
 export class MenuScene extends Scene {
-  constructor(private readonly ctx: AppContext) {
-    super();
-  }
+  private radarGfx!: Graphics;
+  private radarAngle: number = 0;
+  private dots: RadarDot[] = [];
+  private cx: number = RESOLUTION.w / 2;
+  private cy: number = RESOLUTION.h / 2;
+  private maxRadius: number = RESOLUTION.w;
+
+  constructor(private readonly ctx: AppContext) { super(); }
 
   enter(): void {
-    // We leave the canvas blank and let the HTML UI layer handle the high-res background!
-    this.ctx.ui.show('main-menu');
-    this.ctx.ui.setText('#menu-title', TITLE);
+    this.radarGfx = new Graphics();
+    this.container.addChild(this.radarGfx);
+    this.generateDots();
 
-    this.ctx.ui.onClick('#play-btn', () => {
-      this.ctx.sceneManager.transitionTo(PlayScene, undefined, true);
+    this.ctx.ui.show('main-menu');
+
+    const hasSave = this.ctx.storage.load<string | null>('battleship_save', null) !== null;
+
+    if (hasSave) {
+      this.ctx.ui.setText('#menu-subtitle', 'ACTIVE LINK DETECTED\nAWAITING ORDERS');
+      const resumeBtn = document.getElementById('resume-btn');
+      if (resumeBtn) resumeBtn.style.display = 'block';
+    }
+
+    this.ctx.ui.onClick('#new-game-btn', () => {
+      this.ctx.sceneManager.transitionTo(PlayScene, { resume: false }, true);
+    });
+
+    this.ctx.ui.onClick('#resume-btn', () => {
+      this.ctx.sceneManager.transitionTo(PlayScene, { resume: true }, true);
+    });
+
+    this.ctx.ui.onClick('#stats-btn', () => {
+      this.ctx.ui.show('stats-modal');
+      // CORRECT STORAGE API for Stats
+      this.ctx.ui.setText('#stat-p1', this.ctx.storage.load<number>('stats_p1_wins', 0).toString());
+      this.ctx.ui.setText('#stat-p2', this.ctx.storage.load<number>('stats_p2_wins', 0).toString());
+      this.ctx.ui.setText('#stat-games', this.ctx.storage.load<number>('stats_games_played', 0).toString());
+      this.ctx.ui.setText('#stat-moves', this.ctx.storage.load<number>('stats_total_moves', 0).toString());
+    });
+
+    this.ctx.ui.onClick('#close-stats-btn', () => {
+      this.ctx.ui.hide('stats-modal');
     });
   }
 
+  private generateDots() {
+    this.dots = [];
+    for (let i = 0; i < 15; i++) {
+      const isLeft = Math.random() > 0.5;
+      const x = isLeft ? 10 + Math.random() * 70 : (RESOLUTION.w - 80) + Math.random() * 70;
+      const y = 10 + Math.random() * (RESOLUTION.h - 20);
+      let angle = Math.atan2(y - this.cy, x - this.cx);
+      if (angle < 0) angle += Math.PI * 2;
+      this.dots.push({ x, y, angle, brightness: 0 });
+    }
+  }
+
   exit(): void {
+    this.container.removeChildren();
     this.ctx.ui.hideAll();
   }
 
-  update(_dt: number): void {
-    if (this.ctx.input.isPressed('Enter')) {
-      this.ctx.sceneManager.transitionTo(PlayScene, undefined, true);
+  update(dt: number): void {
+    const sweepSpeed = 1.0 * dt;
+    this.radarAngle = (this.radarAngle + sweepSpeed) % (Math.PI * 2);
+
+    for (const dot of this.dots) {
+      let diff = Math.abs(this.radarAngle - dot.angle);
+      if (diff > Math.PI) diff = (Math.PI * 2) - diff;
+      if (diff < 0.05) dot.brightness = 1.0;
+      else dot.brightness = Math.max(0, dot.brightness - 0.5 * dt);
+    }
+    this.drawRadar();
+  }
+
+  private drawRadar() {
+    const g = this.radarGfx;
+    g.clear();
+    g.circle(this.cx, this.cy, 50).stroke({ color: 0x00ffff, alpha: 0.1, width: 2 });
+    g.circle(this.cx, this.cy, 150).stroke({ color: 0x00ffff, alpha: 0.05, width: 2 });
+    g.circle(this.cx, this.cy, 300).stroke({ color: 0x00ffff, alpha: 0.05, width: 2 });
+
+    const endX = this.cx + Math.cos(this.radarAngle) * this.maxRadius;
+    const endY = this.cy + Math.sin(this.radarAngle) * this.maxRadius;
+    g.moveTo(this.cx, this.cy).lineTo(endX, endY).stroke({ color: 0x00ffff, alpha: 0.3, width: 2 });
+
+    for (const dot of this.dots) {
+      if (dot.brightness > 0) g.circle(dot.x, dot.y, 4).fill({ color: 0xff0055, alpha: dot.brightness });
     }
   }
 }
