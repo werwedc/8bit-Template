@@ -8,12 +8,14 @@ import { TurnPhase, Orientation, ShotResult } from '../logic/types';
 import { Ship } from '../logic/Ship';
 import { GridRenderer } from '../entities/GridRenderer';
 import type { BoardState } from '../logic/BoardState';
+import { ParticleSystem } from '../../core/particles';
 
 export class PlayScene extends Scene {
   private logic!: GameController;
 
   private p1Grid!: GridRenderer;
   private p2Grid!: GridRenderer;
+  private particles!: ParticleSystem;
 
   private currentShipIndex: number = 0;
   private currentOrientation: Orientation = Orientation.HORIZONTAL;
@@ -45,10 +47,11 @@ export class PlayScene extends Scene {
     const totalW = gridW * 2 + gap;
     const startX = Math.floor((W - totalW) / 2);
 
-    // 2. PUSH BOARDS DOWN SLIGHTLY
+    // Position boards
     const startY = Math.floor((H - gridH) / 2) + 30;
     this.p1Grid.position.set(startX, startY);
     this.p2Grid.position.set(startX + gridW + gap, startY);
+    
     const labelStyle = new TextStyle({
       fontFamily: "'Orbitron', sans-serif",
       fontSize: 42,
@@ -56,18 +59,24 @@ export class PlayScene extends Scene {
       fontWeight: '900',
       letterSpacing: 6
     });
-    // 3. MOVE LABELS HIGHER
+    
+    // Position labels
     const p1Label = new Text({ text: 'PLAYER 1', style: labelStyle });
     p1Label.anchor.set(0.5, 1);
-    p1Label.position.set(startX + gridW / 2, startY - 45); // Was -20
+    p1Label.position.set(startX + gridW / 2, startY - 45);
+    
     const p2Label = new Text({ text: 'PLAYER 2', style: labelStyle });
     p2Label.anchor.set(0.5, 1);
-    p2Label.position.set(startX + gridW + gap + gridW / 2, startY - 45); // Was -20
+    p2Label.position.set(startX + gridW + gap + gridW / 2, startY - 45);
 
     this.container.addChild(p1Label);
     this.container.addChild(p2Label);
     this.container.addChild(this.p1Grid);
     this.container.addChild(this.p2Grid);
+
+    // Initialize Particle System and add it ON TOP of the grids
+    this.particles = new ParticleSystem(512);
+    this.container.addChild(this.particles.container);
 
     this.bindGridEvents(this.p1Grid, this.logic.p1Board);
     this.bindGridEvents(this.p2Grid, this.logic.p2Board);
@@ -80,6 +89,7 @@ export class PlayScene extends Scene {
 
   exit(): void {
     document.removeEventListener('contextmenu', this.preventContextMenu);
+    this.particles.destroy(); // Clean up particles to prevent memory leaks
     this.ctx.ui.hideAll();
     this.container.removeChildren();
   }
@@ -279,12 +289,48 @@ export class PlayScene extends Scene {
       if (outcome.result !== ShotResult.INVALID) {
         grid.renderState();
 
+        // 1. TRIGGER THE EXPLOSION ON HIT OR SUNK
+        if (outcome.result === ShotResult.HIT || outcome.result === ShotResult.SUNK) {
+          // Calculate exact world coordinates for the center of the targeted grid cell
+          const targetX = grid.x + (this.lastGridCoords.x * GAME.TILE_SIZE) + (GAME.TILE_SIZE / 2);
+          const targetY = grid.y + (this.lastGridCoords.y * GAME.TILE_SIZE) + (GAME.TILE_SIZE / 2);
+
+         // Deep Orange Explosion Core (Massive & Chunky)
+          this.particles.emit(targetX, targetY, {
+            count: 30,             // Doubled the particle count
+            size: 6,               // 6px blocks (half the size of your grid tile!)
+            color: 0xff6600, 
+            speed: [80, 200],      // Shoots outward much further
+            life: [0.3, 0.6],      // Lingers on screen longer
+            spread: Math.PI * 2,
+            direction: 0,
+            fade: true
+          });
+
+          // Bright Yellow Sparks (Fast & Wide)
+          this.particles.emit(targetX, targetY, {
+            count: 40,             // Lots of sparks
+            size: 3,               // 3px spark blocks
+            color: 0xffff00, 
+            speed: [150, 350],     // Extremely fast, flies across multiple grid cells
+            life: [0.2, 0.4],      
+            spread: Math.PI * 2,
+            direction: 0,
+            fade: true
+          });
+
+          // Add screen shake for impact weight
+          this.ctx.camera.shake(5, 5, 0, 0.25);
+          
+          // Optional: If you have an explosion sound registered, uncomment this!
+          // this.ctx.audio.play('explosion');
+        }
+
         const msgEl = document.getElementById('combat-message');
         if (msgEl) {
           const extraTurnText = (outcome.result === ShotResult.HIT || outcome.result === ShotResult.SUNK) ? ' - CRITICAL HIT!' : '';
           msgEl.innerText = outcome.result + extraTurnText;
           msgEl.style.display = 'block';
-          // Use Neon Pink for Hit/Sunk, Cyan for Miss
           msgEl.style.color = (outcome.result === ShotResult.HIT || outcome.result === ShotResult.SUNK) ? '#ff0055' : '#00ffff';
           msgEl.style.textShadow = `0 0 20px ${(outcome.result === ShotResult.HIT || outcome.result === ShotResult.SUNK) ? '#ff0055' : '#00ffff'}`;
 
