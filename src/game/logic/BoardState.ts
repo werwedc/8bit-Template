@@ -65,12 +65,10 @@ export class BoardState {
         if (x < 0 || x >= this.width || y < 0 || y >= this.height) return { result: ShotResult.INVALID };
 
         const row = this.grid[y];
-        if (!row) return { result: ShotResult.INVALID }; // Safe array access
+        if (!row) return { result: ShotResult.INVALID };
 
-        // Already guessed check
         if (row[x] !== CellState.WATER) return { result: ShotResult.INVALID };
 
-        // Check if we hit a ship
         for (const ps of this.placedShips) {
             const coords = ps.ship.getAbsoluteCoords(ps.x, ps.y, ps.orientation);
             const hitIndex = coords.findIndex(pt => pt.x === x && pt.y === y);
@@ -80,13 +78,31 @@ export class BoardState {
                 ps.ship.takeHit(ps.x, ps.y, ps.orientation, x, y);
 
                 if (ps.ship.isSunk) {
+                    const sunkCoords = ps.ship.getAbsoluteCoords(ps.x, ps.y, ps.orientation);
+                    
+                    for (const pt of sunkCoords) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            for (let dy = -1; dy <= 1; dy++) {
+                                const adjX = pt.x + dx;
+                                const adjY = pt.y + dy;
+                                
+                                if (adjX >= 0 && adjX < this.width && adjY >= 0 && adjY < this.height) {
+                                    const adjRow = this.grid[adjY];
+                                    if (adjRow && adjRow[adjX] === CellState.WATER) {
+                                        // CHANGED: Now marks as INACTIVE instead of MISS
+                                        adjRow[adjX] = CellState.INACTIVE; 
+                                    }
+                                }
+                            }
+                        }
+                    }
                     return { result: ShotResult.SUNK, shipSunk: ps.ship };
                 }
+
                 return { result: ShotResult.HIT };
             }
         }
 
-        // Missed
         row[x] = CellState.MISS;
         return { result: ShotResult.MISS };
     }

@@ -56,9 +56,16 @@ export class BootScene extends Scene {
   private async _load(onProgress: (p: number) => void): Promise<void> {
     await this.ctx.assets.loadManifest(ASSET_MANIFEST, onProgress);
 
-    // ── Register audio here ──────────────────────────────────────────────
-    // this.ctx.audio.register('hit', { src: ['/assets/audio/hit.mp3'] });
-    // this.ctx.audio.register('music', { src: ['/assets/audio/bgm.mp3'], loop: true, volume: 0.5 });
+    // ── SFX ──────────────────────────────────────────────
+    this.ctx.audio.register('menu_select', { src: ['/assets/audio/audio effects retro/hud/menu select.wav'] });
+    this.ctx.audio.register('hit', { src: ['/assets/audio/8bit Sound Pack/8bit Sound Pack/mp3/Bomb_Explosion.mp3'] });
+    this.ctx.audio.register('sunk', { src: ['/assets/audio/death.mp3'] });
+    this.ctx.audio.register('hover_cell', { src: ['/audio/beep.mp3'] });
+    this.ctx.audio.register('place_ship', { src: ['/audio/hardDrop.ogg'] });
+
+    // ── Background Music ──────────────────────────────────────────────
+    this.ctx.audio.register('bgm_lobby', { src: ['/assets/audio/Lobby.mp3'], loop: true, volume: 0.5 });
+    this.ctx.audio.register('bgm_game', { src: ['/assets/audio/BackgroundMusic.mp3'], loop: true, volume: 0.3 });
 
     onProgress(1);
     await new Promise((r) => setTimeout(r, 100));

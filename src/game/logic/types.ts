@@ -2,6 +2,7 @@ export enum CellState {
     WATER = 0,
     MISS = 1,
     HIT = 2,
+    INACTIVE = 3
 }
 
 export enum Orientation {
