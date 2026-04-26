@@ -157,7 +157,7 @@ export class PlayScene extends Scene {
       const local = grid.toLocal(e.global);
       const newCoords = grid.getGridCoords(local.x, local.y);
 
-      // Only trigger hover updates/sounds if we moved to a NEW cell (Teammate feature)
+      // Only trigger hover updates/sounds if we moved to a NEW cell
       if (!this.lastGridCoords || newCoords?.x !== this.lastGridCoords.x || newCoords?.y !== this.lastGridCoords.y) {
         this.lastGridCoords = newCoords;
         this.lastActiveGrid = grid;
@@ -204,10 +204,10 @@ export class PlayScene extends Scene {
 
     this.ctx.ui.onClick('#menu-btn', () => this.ctx.sceneManager.transitionTo(MenuScene));
 
-    // Add audio feedback to all in-game menu buttons (Teammate feature)
+    // Add audio feedback to all in-game menu buttons ON CLICK
     const menuButtons = document.querySelectorAll('.menu-btn');
     menuButtons.forEach(btn => {
-      btn.addEventListener('mouseenter', () => this.ctx.audio.play('menu_select'));
+      btn.addEventListener('click', () => this.ctx.audio.play('menu_select'));
     });
   }
 
@@ -309,8 +309,19 @@ export class PlayScene extends Scene {
       this.ctx.sceneManager.transitionTo(MenuScene);
       return;
     }
-    if (!this.isPassingDevice && this.ctx.input.isPressed('Space')) {
-      this.rotateShip();
+
+    // --- CONTEXT-AWARE SPACEBAR ---
+    if (this.ctx.input.isPressed('Space')) {
+      if (this.isPassingDevice) {
+        // 1. Act as the "ENGAGE" / Ready button
+        this.ctx.audio.play('menu_select');
+        this.isPassingDevice = false;
+        this.timeLeft = GAME.TURN_TIME_LIMIT;
+        this.updatePhaseVisuals();
+      } else {
+        // 2. Standard gameplay action (Rotate Ship)
+        this.rotateShip();
+      }
     }
 
     const isAiTurn = this.isVsCpu && this.logic.phase === TurnPhase.P2_TURN;
@@ -411,7 +422,7 @@ export class PlayScene extends Scene {
       const isValid = board.canPlaceShip(tempShip, this.lastGridCoords.x, this.lastGridCoords.y, this.currentOrientation);
 
       if (isValid) {
-        // Place Ship Audio (Teammate feature)
+        // Place Ship Audio
         this.ctx.audio.play('place_ship');
 
         const realShip = new Ship(`ship_${board === this.logic.p1Board ? 'p1' : 'p2'}_${this.currentShipIndex}`, shipLength);
@@ -436,7 +447,7 @@ export class PlayScene extends Scene {
     this.saveGameState();
     targetGrid.renderState();
 
-    // Hit / Sunk Audio (Teammate feature)
+    // Hit / Sunk Audio
     if (outcome.result === ShotResult.HIT) {
       this.ctx.audio.play('hit');
     } else if (outcome.result === ShotResult.SUNK) {
@@ -466,6 +477,10 @@ export class PlayScene extends Scene {
     if (this.logic.winner !== null) {
       this.updatePhaseVisuals();
     } else if (outcome.result === ShotResult.MISS) {
+
+      // ── MISS AUDIO TRIGGERS HERE ──
+      this.ctx.audio.play('miss');
+
       setTimeout(() => {
         if (this.isVsCpu) {
           this.timeLeft = GAME.TURN_TIME_LIMIT;

@@ -17,6 +17,9 @@ export class MenuScene extends Scene {
   constructor(private readonly ctx: AppContext) { super(); }
 
   enter(): void {
+    // Start Lobby Music
+    this.ctx.audio.play('bgm_lobby');
+
     this.radarGfx = new Graphics();
     this.container.addChild(this.radarGfx);
     this.generateDots();
@@ -55,6 +58,12 @@ export class MenuScene extends Scene {
     this.ctx.ui.onClick('#close-stats-btn', () => {
       this.ctx.ui.hide('stats-modal');
     });
+
+    // Add audio feedback to menu buttons ON CLICK
+    const menuButtons = document.querySelectorAll('.menu-btn');
+    menuButtons.forEach(btn => {
+      btn.addEventListener('click', () => this.ctx.audio.play('menu_select'));
+    });
   }
 
   private generateDots() {
@@ -70,6 +79,8 @@ export class MenuScene extends Scene {
   }
 
   exit(): void {
+    // Stop Lobby Music before transitioning
+    this.ctx.audio.stop('bgm_lobby');
     this.container.removeChildren();
     this.ctx.ui.hideAll();
   }
