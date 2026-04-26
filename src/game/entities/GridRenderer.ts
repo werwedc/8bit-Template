@@ -43,46 +43,46 @@ export class GridRenderer extends Container {
 
         g.rect(0, 0, W, H).fill({ color: PALETTE.water });
 
+        // Grid lines - Increased to 2px width for 1080p
         for (let x = 0; x <= this.boardState.width; x++) {
-            g.moveTo(x * TS, 0).lineTo(x * TS, H).stroke({ color: PALETTE.grid, width: 1 });
+            g.moveTo(x * TS, 0).lineTo(x * TS, H).stroke({ color: PALETTE.grid, width: 2 });
         }
         for (let y = 0; y <= this.boardState.height; y++) {
-            g.moveTo(0, y * TS).lineTo(W, y * TS).stroke({ color: PALETTE.grid, width: 1 });
+            g.moveTo(0, y * TS).lineTo(W, y * TS).stroke({ color: PALETTE.grid, width: 2 });
         }
         this.staticLayer.addChild(g);
-        // Replace the labels section in drawStaticGrid() with this:
 
-        // High-res text rendering trick: 
-        // Render at size 32, scale down by 0.25 to get a crisp size 8.
-        const baseFontSize = 32;
-        const targetFontSize = 8;
-        const scaleFactor = targetFontSize / baseFontSize;
+        // Clean, native 1080p text styling (No more scale hacks!)
+        // Inside GridRenderer.ts -> drawStaticGrid()
 
         const labelStyle = new TextStyle({
-            fontFamily: "'Overpass Mono', monospace", // <-- Change this line
-            fontSize: baseFontSize,
-            fill: PALETTE.fg,
-            fontWeight: 'bold'
+            fontFamily: "'Overpass Mono', monospace",
+            fontSize: 22,
+            // 1. BRIGHTER COLOR (Bright Teal)
+            fill: 0x00aacc,
+            fontWeight: 'normal',
+            letterSpacing: 2
         });
 
         for (let x = 0; x < this.boardState.width; x++) {
             const letter = String.fromCharCode(65 + x);
             const text = new Text({ text: letter, style: labelStyle });
-            text.scale.set(scaleFactor); // Scale it down for crispness
             text.anchor.set(0.5, 1);
-            text.position.set(x * TS + TS / 2, -2);
+            // 2. MOVE SLIGHTLY HIGHER
+            text.position.set(x * TS + TS / 2, -12);
             this.staticLayer.addChild(text);
         }
 
         for (let y = 0; y < this.boardState.height; y++) {
             const text = new Text({ text: (y + 1).toString(), style: labelStyle });
-            text.scale.set(scaleFactor); // Scale it down for crispness
             text.anchor.set(1, 0.5);
-            text.position.set(-2, y * TS + TS / 2);
+            // 3. MOVE SLIGHTLY LEFT
+            text.position.set(-12, y * TS + TS / 2);
             this.staticLayer.addChild(text);
         }
 
     }
+
 
     public setShowHiddenShips(show: boolean) {
         this.showHiddenShips = show;

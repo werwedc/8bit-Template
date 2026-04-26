@@ -46,19 +46,26 @@ export function applyRetroFilters(viewport: Viewport, config: RetroFilterConfig 
   viewport.filterLayer.filters = [];
   _crtFilter = null;
 
-  // --- Pass 1: bloom on the world container (low-res) ---
+  // We now apply all filters (Bloom, CRT, RGB Split) to the high-res filterLayer!
+  const stack: import('pixi.js').Filter[] = [];
+
+  const resolution = window.devicePixelRatio || 1;
+
+  // --- Pass 1: High-Res Bloom ---
   if (!config.noBloom) {
     const bloom = new AdvancedBloomFilter({
       threshold: config.bloomThreshold ?? 0.5,
       bloomScale: config.bloomScale ?? 0.8,
       brightness: 1,
       blur: 4,
-      quality: 4,
+      quality: 10,
     });
-    viewport.world.filters = [bloom];
+    // Set resolution directly on the filter instance
+    bloom.resolution = resolution;
+    stack.push(bloom);
   }
 
-  // --- Pass 2: CRT + RGB split on the upscaled RT sprite ---
+  // --- Pass 2: CRT + RGB split ---
   if (!config.noCRT) {
     _crtFilter = new CRTFilter({
       curvature: config.crtCurvature ?? 2,
@@ -72,20 +79,28 @@ export function applyRetroFilters(viewport: Viewport, config: RetroFilterConfig 
       time: 0,
     });
 
+    // Explicitly set CRT resolution
+    _crtFilter.resolution = resolution;
+    stack.push(_crtFilter);
+
     const offset = config.rgbSplitOffset ?? 2;
-    const stack: import('pixi.js').Filter[] = [_crtFilter];
     if (offset > 0) {
-      stack.push(
-        new RGBSplitFilter({
-          red:   { x: -offset, y: 0 },
-          green: { x: 0,       y: 0 },
-          blue:  { x: offset,  y: 0 },
-        }),
-      );
+      const rgbSplit = new RGBSplitFilter({
+        red: { x: -offset, y: 0 },
+        green: { x: 0, y: 0 },
+        blue: { x: offset, y: 0 },
+      });
+      // Explicitly set RGB split resolution
+      rgbSplit.resolution = resolution;
+      stack.push(rgbSplit);
     }
-    viewport.filterLayer.filters = stack;
   }
+
+  // Apply the entire stack to the high-res layer
+  viewport.filterLayer.filters = stack;
 }
+
+
 
 /**
  * Backwards-compatible alias for the original API.

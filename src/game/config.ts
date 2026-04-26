@@ -6,38 +6,42 @@ import type { RetroFilterConfig } from '../core/filters';
 // 'native-res' — RESOLUTION rewritten to device physical pixels. 1:1, no scaling.
 export const RENDER_MODE: 'retro' | 'native' | 'native-res' = 'native';
 
-// ─── Resolution ─────────────────────────────────────────────────────────────
-// The logical coordinate space for all game objects.
-// Common: NES 256×240 | GB 160×144 | SNES 256×224 | Widescreen 320×180
-export const RESOLUTION: { w: number; h: number } = { w: 320, h: 180 };
 
 // ─── Title ───────────────────────────────────────────────────────────────────
 export const TITLE = 'BATTLESHIP';
 
 // ─── Colour palette ──────────────────────────────────────────────────────────
 export const PALETTE = {
-  bg: 0x0f380f,      // Dark green (Game Boy style)
-  fg: 0x8bac0f,      // Light green
-  accent: 0x306230,  // Medium green
+  bg: 0x000000,      // Pure black background
+  fg: 0x00ffff,      // Cyan text/labels
+  accent: 0x3a0cd2,  // Dark Violet
 
   // Battleship specific colors
-  water: 0x1e3d59,
-  ship: 0xa5a5af,
-  hit: 0xff4d4d,     // Red
-  miss: 0xffffff,    // White
-  valid: 0x4dff4d,   // Green for valid placement
-  invalid: 0xff4d4d, // Red for invalid placement
-  grid: 0x444444     // Subtle grid lines
+  water: 0x050010,   // Extremely dark violet/black for grid cells
+  ship: 0x00ffff,    // Bright Cyan ships
+  hit: 0xff0055,     // Neon Pink/Red for hits
+  miss: 0x3a0cd2,    // Violet for misses (blends into the grid)
+  valid: 0x00ff00,   // Neon Green for placement
+  invalid: 0xff0055, // Neon Pink for bad placement
+  grid: 0x3a0cd2     // Dark Violet grid lines
 } as const;
+
+
+// Replace your RESOLUTION and GAME exports with these:
+
+// ─── Resolution ─────────────────────────────────────────────────────────────
+// Upgraded to 1080p HD for crisp, modern neon UI rendering!
+export const RESOLUTION: { w: number; h: number } = { w: 1920, h: 1080 };
 
 // ─── Gameplay constants ──────────────────────────────────────────────────────
 export const GAME = {
   BOARD_WIDTH: 10,
   BOARD_HEIGHT: 10,
-  // 1x 4-length, 2x 3-length, 3x 2-length, 4x 1-length
   SHIP_INVENTORY: [4, 3, 3, 2, 2, 2, 1, 1, 1, 1],
-  TILE_SIZE: 12,      // 12x12 pixels per tile. Fits two 10x10 boards nicely on 320x180
+  // Scaled up from 12px to 64px to fit the new 1080p resolution!
+  TILE_SIZE: 64,
 } as const;
+
 
 
 // ─── Retro filter presets (F1 to cycle) ──────────────────────────────────────

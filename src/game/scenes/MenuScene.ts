@@ -1,7 +1,6 @@
-import { Graphics } from 'pixi.js';
 import { Scene } from '../../core/scene';
 import type { AppContext } from '../../core/types';
-import { PALETTE, RESOLUTION, TITLE } from '../config';
+import { TITLE } from '../config';
 import { PlayScene } from './PlayScene';
 
 export class MenuScene extends Scene {
@@ -10,13 +9,7 @@ export class MenuScene extends Scene {
   }
 
   enter(): void {
-    const W = RESOLUTION.w;
-    const H = RESOLUTION.h;
-
-    const bg = new Graphics();
-    bg.rect(0, 0, W, H).fill({ color: PALETTE.bg });
-    this.container.addChild(bg);
-
+    // We leave the canvas blank and let the HTML UI layer handle the high-res background!
     this.ctx.ui.show('main-menu');
     this.ctx.ui.setText('#menu-title', TITLE);
 
@@ -25,7 +18,9 @@ export class MenuScene extends Scene {
     });
   }
 
-  exit(): void {}
+  exit(): void {
+    this.ctx.ui.hideAll();
+  }
 
   update(_dt: number): void {
     if (this.ctx.input.isPressed('Enter')) {

@@ -39,36 +39,30 @@ export class PlayScene extends Scene {
     this.p1Grid = new GridRenderer(this.logic.p1Board, true);
     this.p2Grid = new GridRenderer(this.logic.p2Board, true);
 
-    // Layout: Side-by-side
     const gridW = GAME.BOARD_WIDTH * GAME.TILE_SIZE;
     const gridH = GAME.BOARD_HEIGHT * GAME.TILE_SIZE;
-    const gap = 20;
+    const gap = 100;
     const totalW = gridW * 2 + gap;
-
     const startX = Math.floor((W - totalW) / 2);
-    const startY = Math.floor((H - gridH) / 2) + 5; // Pushed down slightly for HUD and labels
 
+    // 2. PUSH BOARDS DOWN SLIGHTLY
+    const startY = Math.floor((H - gridH) / 2) + 30;
     this.p1Grid.position.set(startX, startY);
     this.p2Grid.position.set(startX + gridW + gap, startY);
-
-    // Add Player Labels above boards (using high-res text trick)
     const labelStyle = new TextStyle({
-      fontFamily: "'Overpass Mono', monospace", // <-- Change this line
-      fontSize: 32,
+      fontFamily: "'Orbitron', sans-serif",
+      fontSize: 42,
       fill: PALETTE.fg,
-      fontWeight: 'bold'
+      fontWeight: '900',
+      letterSpacing: 6
     });
-
-
+    // 3. MOVE LABELS HIGHER
     const p1Label = new Text({ text: 'PLAYER 1', style: labelStyle });
-    p1Label.scale.set(0.25);
     p1Label.anchor.set(0.5, 1);
-    p1Label.position.set(startX + gridW / 2, startY - 5);
-
+    p1Label.position.set(startX + gridW / 2, startY - 45); // Was -20
     const p2Label = new Text({ text: 'PLAYER 2', style: labelStyle });
-    p2Label.scale.set(0.25);
     p2Label.anchor.set(0.5, 1);
-    p2Label.position.set(startX + gridW + gap + gridW / 2, startY - 5);
+    p2Label.position.set(startX + gridW + gap + gridW / 2, startY - 45); // Was -20
 
     this.container.addChild(p1Label);
     this.container.addChild(p2Label);
@@ -119,16 +113,13 @@ export class PlayScene extends Scene {
 
   private setupUIBindings() {
     this.ctx.ui.hideAll();
-
     this.ctx.ui.onClick('#ready-btn', () => {
       this.isPassingDevice = false;
       this.updatePhaseVisuals();
     });
-
     this.ctx.ui.onClick('#restart-btn', () => {
       this.ctx.sceneManager.transitionTo(PlayScene, undefined, true);
     });
-
     this.ctx.ui.onClick('#menu-btn', () => {
       this.ctx.sceneManager.transitionTo(MenuScene);
     });
@@ -141,15 +132,14 @@ export class PlayScene extends Scene {
     this.lastGridCoords = null;
 
     if (this.isPassingDevice) {
-      // Hide ships on both boards just to be safe during pass device
       this.p1Grid.setShowHiddenShips(false);
       this.p2Grid.setShowHiddenShips(false);
       this.p1Grid.eventMode = 'none';
       this.p2Grid.eventMode = 'none';
 
       this.ctx.ui.show('pass-device');
-      const nextPlayer = (this.logic.phase === TurnPhase.P2_PLACEMENT || this.logic.phase === TurnPhase.P2_TURN) ? "Player 2" : "Player 1";
-      this.ctx.ui.setText('#pass-device-text', `${nextPlayer}'s Turn`);
+      const nextPlayer = (this.logic.phase === TurnPhase.P2_PLACEMENT || this.logic.phase === TurnPhase.P2_TURN) ? "PLAYER 2" : "PLAYER 1";
+      this.ctx.ui.setText('#pass-device-text', `${nextPlayer} STANDBY`);
       return;
     }
 
@@ -157,54 +147,46 @@ export class PlayScene extends Scene {
       case TurnPhase.P1_PLACEMENT:
         this.p1Grid.setShowHiddenShips(true);
         this.p2Grid.setShowHiddenShips(false);
-        this.p1Grid.eventMode = 'static'; // Allow interacting with own board
-        this.p2Grid.eventMode = 'none';   // Disable enemy board
-
+        this.p1Grid.eventMode = 'static';
+        this.p2Grid.eventMode = 'none';
         this.ctx.ui.show('placement-hud');
-        this.ctx.ui.setText('#placement-text', 'Player 1: Place your ships');
+        this.ctx.ui.setText('#placement-text', 'PLAYER 1: DEPLOY FLEET');
         break;
 
       case TurnPhase.P2_PLACEMENT:
-        this.p1Grid.setShowHiddenShips(false); // Hide P1's placed ships!
+        this.p1Grid.setShowHiddenShips(false);
         this.p2Grid.setShowHiddenShips(true);
         this.p1Grid.eventMode = 'none';
         this.p2Grid.eventMode = 'static';
-
         this.ctx.ui.show('placement-hud');
-        this.ctx.ui.setText('#placement-text', 'Player 2: Place your ships');
+        this.ctx.ui.setText('#placement-text', 'PLAYER 2: DEPLOY FLEET');
         break;
 
       case TurnPhase.P1_TURN:
-        // P1 sees their own ships, P2's are hidden
         this.p1Grid.setShowHiddenShips(true);
         this.p2Grid.setShowHiddenShips(false);
-        this.p1Grid.eventMode = 'none';   // Can't shoot own board
-        this.p2Grid.eventMode = 'static'; // Target enemy board
-
+        this.p1Grid.eventMode = 'none';
+        this.p2Grid.eventMode = 'static';
         this.ctx.ui.show('combat-hud');
-        this.ctx.ui.setText('#turn-indicator', 'Player 1');
+        this.ctx.ui.setText('#turn-indicator', 'PLAYER 1');
         break;
 
       case TurnPhase.P2_TURN:
-        // P2 sees their own ships, P1's are hidden
         this.p1Grid.setShowHiddenShips(false);
         this.p2Grid.setShowHiddenShips(true);
-        this.p1Grid.eventMode = 'static'; // Target enemy board
-        this.p2Grid.eventMode = 'none';   // Can't shoot own board
-
+        this.p1Grid.eventMode = 'static';
+        this.p2Grid.eventMode = 'none';
         this.ctx.ui.show('combat-hud');
-        this.ctx.ui.setText('#turn-indicator', 'Player 2');
+        this.ctx.ui.setText('#turn-indicator', 'PLAYER 2');
         break;
 
       case TurnPhase.GAME_OVER:
-        // Reveal everything
         this.p1Grid.setShowHiddenShips(true);
         this.p2Grid.setShowHiddenShips(true);
         this.p1Grid.eventMode = 'none';
         this.p2Grid.eventMode = 'none';
-
         this.ctx.ui.show('game-over');
-        this.ctx.ui.setText('#gameover-text', `PLAYER ${this.logic.winner} WINS!`);
+        this.ctx.ui.setText('#gameover-text', `PLAYER ${this.logic.winner} VICTORIOUS`);
         break;
     }
   }
@@ -221,19 +203,17 @@ export class PlayScene extends Scene {
       this.ctx.sceneManager.transitionTo(MenuScene);
       return;
     }
-
     if (!this.isPassingDevice && this.ctx.input.isPressed('Space')) {
       this.rotateShip();
     }
   }
 
-  // Helper to determine which grid the player SHOULD be interacting with
   private getExpectedGrid(): GridRenderer | null {
     switch (this.logic.phase) {
       case TurnPhase.P1_PLACEMENT: return this.p1Grid;
       case TurnPhase.P2_PLACEMENT: return this.p2Grid;
-      case TurnPhase.P1_TURN: return this.p2Grid; // P1 targets P2
-      case TurnPhase.P2_TURN: return this.p1Grid; // P2 targets P1
+      case TurnPhase.P1_TURN: return this.p2Grid;
+      case TurnPhase.P2_TURN: return this.p1Grid;
       default: return null;
     }
   }
@@ -245,7 +225,7 @@ export class PlayScene extends Scene {
     if (!this.lastActiveGrid || !this.lastGridCoords || this.isPassingDevice || this.logic.phase === TurnPhase.GAME_OVER) return;
 
     const expectedGrid = this.getExpectedGrid();
-    if (this.lastActiveGrid !== expectedGrid) return; // Ignore hover on the wrong board
+    if (this.lastActiveGrid !== expectedGrid) return;
 
     const phase = this.logic.phase;
     const board = (phase === TurnPhase.P1_PLACEMENT || phase === TurnPhase.P2_TURN) ? this.logic.p1Board : this.logic.p2Board;
@@ -294,7 +274,6 @@ export class PlayScene extends Scene {
         }
       }
     } else {
-      // Combat Phase
       const outcome = this.logic.fireShot(this.lastGridCoords.x, this.lastGridCoords.y);
 
       if (outcome.result !== ShotResult.INVALID) {
@@ -302,10 +281,13 @@ export class PlayScene extends Scene {
 
         const msgEl = document.getElementById('combat-message');
         if (msgEl) {
-          const extraTurnText = (outcome.result === ShotResult.HIT || outcome.result === ShotResult.SUNK) ? ' - GO AGAIN!' : '';
+          const extraTurnText = (outcome.result === ShotResult.HIT || outcome.result === ShotResult.SUNK) ? ' - CRITICAL HIT!' : '';
           msgEl.innerText = outcome.result + extraTurnText;
           msgEl.style.display = 'block';
-          msgEl.style.color = (outcome.result === ShotResult.HIT || outcome.result === ShotResult.SUNK) ? '#ff4d4d' : '#ffffff';
+          // Use Neon Pink for Hit/Sunk, Cyan for Miss
+          msgEl.style.color = (outcome.result === ShotResult.HIT || outcome.result === ShotResult.SUNK) ? '#ff0055' : '#00ffff';
+          msgEl.style.textShadow = `0 0 20px ${(outcome.result === ShotResult.HIT || outcome.result === ShotResult.SUNK) ? '#ff0055' : '#00ffff'}`;
+
           setTimeout(() => { msgEl.style.display = 'none'; }, 1000);
         }
 
