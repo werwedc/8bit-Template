@@ -1,129 +1,81 @@
-# BATTLESHIP: OMEGA PROTOCOL 
-**UCUP-2026: Game Jam Submission**
+# Battleship: Omega Protocol
 
-**Battleship: Omega Protocol** — це тактичний симулятор морського бою в сеттингу ретро-футуризму та кіберпанку. Проєкт поєднує класичні правила гри з глибокими кастомними механіками (твіками), просунутим штучним інтелектом та соковитим аудіо-візуальним виконанням (Game Feel).
+**A cyberpunk, browser-based take on Battleship—built by [AbstractTeamFactoryProvider](https://ucup.org.ua/standings?lang=en) during the five-hour UCUP 2026 Game Jam.**
 
-🎮 **ГРАТИ ОНЛАЙН (Vercel):** [https://battleships-eta.vercel.app/](https://battleships-eta.vercel.app/)
-**Рекомендовано Chrome**
-**Якщо коротко** - PvP та Single-player проти просунутого AI, кастомний режим OMEGA з динамічними розмірами поля (від 5х5 до 12х12) та гнучким налаштуванням складу флоту, нестандартні форми кораблів, зброя масового ураження (NOVA 3x3 та хрестоподібний ORBITAL LANCE), математична валідація місткості поля перед стартом (щоб уникнути крашів), безвідмовний алгоритм Auto-Deploy, збереження прогресу поточного матчу та глобальної статистики в LocalStorage, Native 1080p рендер з кастомним фіксом пікселізації для AdvancedBloomFilter та CRT-шейдерів, складні UI-оверлеї з використанням CSS mask-image для вирізання "прозорих вікон" під ігрові поля крізь глобальні неонові сканлайни, а також соковитий Game Feel із системою частинок для вибухів, динамічним Camera Shake та звуковим супроводом кожної дії. А також notifications, settings, statistics.
----
+[Play the live demo](https://battleships-eta.vercel.app/) · [About UCUP](https://ucup.org.ua/?lang=en)
 
-## 📑 Зміст
-1. [Game Design Document (GDD)](#1-game-design-document-gdd)
-2. [Реалізовані Твіки (Custom Mechanics)](#2-реалізовані-твіки)
-3. [Engineering & Architecture (ENG)](#3-engineering--architecture)
-4. [Art, Sound & Game Feel (AV & GX)](#4-art-sound--game-feel)
-5. [User Experience (UX & QA)](#5-user-experience--qa)
-6. [Інструкція з розгортання (Installation)](#6-інструкція-з-розгортання)
+Battleship: Omega Protocol turns the familiar naval strategy game into a neon tactical terminal. It pairs a polished 1080p presentation with configurable rules, a capable computer opponent, and local multiplayer—all delivered as a TypeScript web game.
 
----
+## At a glance
 
-## 1. GAME DESIGN DOCUMENT (GDD)
+- **Three ways to play:** challenge the computer, play two-player hot-seat mode, or create a custom Omega match.
+- **Omega Protocol:** configure a board from 5×5 to 12×12, turn duration, and fleet composition—including corner and T-shaped ships.
+- **Tactical opponent:** after a hit, the AI hunts along likely positions instead of continuing to fire at random.
+- **Player-friendly flow:** one-click fleet deployment, protected pass-the-device screens, match resumption, and persistent statistics.
+- **Clear game feedback:** animated hits and sunk ships, particles, camera shake, audio, and a cohesive CRT/neon interface.
 
-### Концепція та Core Loop
-Гравець бере на себе роль оператора тактичного терміналу. 
-**Core Loop:** Розгортання флоту (Deployment) ➔ Аналіз поля ➔ Тактичний удар (Strike) ➔ Отримання фідбеку (Hit/Miss/Sunk) ➔ Передача ходу або продовження атаки (Extra Turn) ➔ Знищення флоту супротивника.
+## How to play
 
-### Пріоритизація (MoSCoW)
-Проєкт розроблявся з чітким фокусом на стабільність та масштабованість:
-* **Must have:** Класичні правила, поле 10x10, Hot-seat PvP, відстеження стану клітин (вода/попадання/промах), умова перемоги.
-* **Should have:** Соковитий фідбек (анімації, частинки, шейки екрану), захист від підглядання (Pass Device screen), розумний AI для одиночної гри.
-* **Could have:** Кастомні режими (Omega Protocol), нестандартні кораблі (Т-подібні, кутові), AoE зброя, таймери ходу. *(Усе це успішно реалізовано!)*
-* **Won't have:** Мережевий мультиплеєр (щоб уникнути ризиків нестабільності під час джему, фокус зміщено на ідеальний Hot-seat та AI).
+1. Pick a mode from the main menu.
+2. Place your fleet manually, or select **Auto Deploy**. While placing, press <kbd>Space</kbd> or right-click to rotate a ship.
+3. Click the opposing grid to fire. A hit or sunk ship earns another turn.
+4. In two-player modes, pass the device when prompted—the game hides the board before the next player takes over.
 
-### Player Flow
-1. **Головне меню:** Гравця зустрічає кіберпанк-термінал. Вибір між грою проти AI, PvP або кастомним режимом OMEGA.
-2. **Фаза розгортання:** Гравець розміщує кораблі вручну (з підсвічуванням валідних зон) або використовує алгоритм **Auto-Deploy**.
-3. **Екран передачі (для PvP):** Спеціальний "сліпий" екран (Pass Device), що приховує поле під час передачі мишки супротивнику.
-4. **Бойова фаза:** Вибір зброї, постріли з таймером, отримання додаткових ходів за влучання.
-5. **Завершення:** Екран перемоги, збереження глобальної статистики.
+## What this project demonstrates
 
----
+The game was designed to balance game feel with a maintainable browser-game architecture:
 
-## 2. РЕАЛІЗОВАНІ ТВІКИ
+- **Separated game rules and visuals.** `src/game/logic/` contains the board, ship, turn, save, and AI rules without PixiJS dependencies. Scene and entity layers turn that state into the playable experience.
+- **Interactive 2D rendering.** PixiJS renders the grids and ships procedurally, while GSAP drives movement and sinking animations.
+- **Polished UI state.** HTML/CSS overlays handle menus, settings, statistics, notifications, and the private hand-off screen for hot-seat matches.
+- **Resilient custom matches.** Omega configuration validates fleet density before a match starts, and auto-deployment reports failure safely when a layout cannot be placed.
 
-Проєкт суворо дотримується вимог джему: гра симетрична, детермінована та гарантовано завершувана.
+## Technology
 
-1. **Режим OMEGA PROTOCOL (Гнучке налаштування)**
-   * **Зміна розміру поля:** Від компактних $5\times5$ до масивних $12\times12$.
-   * **Кастомний флот:** Гравці самі обирають кількість кораблів.
-   * *Математична валідація:* Гра не дозволить почати матч, якщо вибраний флот фізично неможливо розмістити на полі з урахуванням правил "не торкатися кутами".
+| Area | Tools |
+| --- | --- |
+| Language | TypeScript |
+| Rendering | PixiJS v8, `pixi-filters` |
+| Tooling | Vite, Biome, Vitest |
+| Animation & audio | GSAP, Howler.js |
+| Deployment | Vercel |
 
-2. **Нові форми кораблів (Тетроміно)**
-   * Окрім класичних прямих ліній, додано **Кутові (L3)** та **Т-подібні (T4)** кораблі. 
-   * Система рендерингу динамічно будує "мости" між блоками, роблячи ці кораблі цілісними об'єктами.
+## Project structure
 
-3. **Спеціальне озброєння (AoE Орднанс)**
-   * **NOVA CLUSTER:** Килимове бомбардування області $3\times3$.
-   * **ORBITAL LANCE:** Хрестоподібний удар, що випалює цілий рядок та стовпець.
-   * Зброя має обмежений боєзапас і тактично використовується для розкриття карти або добивання складних фігур.
+```text
+src/
+├── core/           # Reusable engine systems: rendering, input, audio, UI, storage
+└── game/
+    ├── logic/      # Rules, board state, AI, saving, and automatic placement
+    ├── entities/   # PixiJS grid and ship visuals
+    └── scenes/     # Boot, menu, and gameplay flows
+```
 
-4. **Advanced Tactical AI**
-   * Бот не просто стріляє навмання. При влучанні він переходить у режим "Полювання".
-   * Алгоритм автоматично викреслює діагональні клітинки від влучань (бо кораблі не можуть там знаходитись) і б'є виключно по ортогональних осях, ідеально імітуючи логіку кіберспортивних гравців у Морський Бій.
+## Run locally
 
----
+Requires Node.js 18 or later.
 
-## 3. ENGINEERING & ARCHITECTURE
+```bash
+git clone https://github.com/werwedc/8bit-Template.git
+cd 8bit-Template
+npm ci
+npm run dev
+```
 
-Кодова база побудована за принципами **SOLID** та **DRY**, з глибоким розділенням логіки та відображення. Стек: `PixiJS v8 + TypeScript + Vite`.
+Vite will print the local URL, normally `http://localhost:5173`.
 
-* **Pure Logic Separation:** Папка `src/game/logic/` не має жодного уявлення про PixiJS, координати екрану чи графіку. Це чисті TypeScript класи (`BoardState`, `Ship`, `GameController`). Це дозволило легко додати AI та систему збережень.
-* **Smart Rendering:** `GridRenderer` читає стан логіки і динамічно малює сітку. Замість важких спрайтів використовується процедурна генерація графіки (графічні примітиви PixiJS).
-* **Strict TypeScript:** Використано жорсткі налаштування компілятора (`verbatimModuleSyntax`, перевірка на `undefined` індекси масивів), що унеможливило левову частку Runtime помилок.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the development server with hot reload |
+| `npm run build` | Type-check and create a production build in `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm test` | Run the Vitest suite |
+| `npm run lint` | Run Biome checks and apply its configured fixes |
 
----
+## Game Jam context
 
-## 4. ART, SOUND & GAME FEEL
-
-**Аудіо-візуальний код (Cohesion):** Проєкт стилізований під неоновий радарний термінал. Кольорова палітра (Pure Black, Cyan, Deep Violet, Neon Pink) витримана у всьому — від HTML UI до канвасу.
-
-* **High-Res Post-Processing:** Замість піксель-арту гра рендериться у Native 1080p. Використовуються кастомні двопрохідні шейдери: **Advanced Bloom** (для неонового світіння кораблів і пострілів) та **CRT Filter + RGB Split** (ефект випуклого монітора та хроматичної аберації).
-* **Juiciness (Соковитість):** При влучанні спрацьовує `ParticleSystem` (викид десятків іскор і вогню) та алгоритмічний **Camera Shake**. Удар Orbital Lance змушує екран буквально тремтіти від руйнувань.
-* **Procedural Radar:** Головне меню має процедурно згенерований радар, промінь якого висвітлює червоні точки (ворожі цілі), що плавно затухають завдяки шейдерам.
+This project was submitted to the **UCUP 2026 Game Jam**, where teams had five hours to create a computer game from scratch. It was made by **[AbstractTeamFactoryProvider](https://ucup.org.ua/standings?lang=en)** as a compact demonstration of rapid product design, TypeScript engineering, and real-time interactive development.
 
 ---
 
-## 5. USER EXPERIENCE & QA
-
-Проєкт орієнтований на бездоганний досвід гравця та захист від багів (Zero-Crashes).
-
-* **Fail-safes та Стабільність:** 
-  * Якщо алгоритм Auto-Deploy (випадкове розміщення) стикається з неможливістю розставити кастомний флот у режимі OMEGA, він робить 50 спроб із відкатом стану (Rewind), а у разі повної невдачі — м'яко повертає гравця в меню з повідомленням про помилку, запобігаючи крашу (Blocker).
-* **Persistent Storage:** Використано надійний `StorageManager`. Гра автоматично зберігає кожен хід. Випадково закрили вкладку? Гра продовжиться з того самого моменту.
-* **Notification System:** Гладкі CSS-анімовані сповіщення зверху екрану пояснюють гравцю, чому хід неможливий ("INVALID TARGET", "GRID DENSITY CRITICAL").
-* **Smart UI:** Кнопки змінюють стан (Disable), коли зброя вичерпана. Ділянки навколо знищених кораблів автоматично помічаються білими крапками, щоб гравець не витрачав ходи даремно.
-* **Шрифти:** Використано **Orbitron** (для масивних заголовків) та **Overpass Mono** (для технічної інформації та сітки).
-
----
-
-## 6. ІНСТРУКЦІЯ З РОЗГОРТАННЯ
-
-Проєкт розгорнуто та готовий до гри онлайн за допомогою Vercel:
-👉 **[Play Battleship: Omega Protocol](https://battleships-eta.vercel.app/)**
-
-### Локальний запуск (Local Build)
-Якщо ви бажаєте запустити гру локально з вихідного коду, переконайтеся, що у вас встановлено **Node.js (v18+)**.
-
-1. Клонуйте репозиторій та перейдіть у папку проєкту:
-   ```bash
-   git clone <repository-url>
-   cd battleship-omega
-   ```
-
-2. Встановіть залежності:
-   ```bash
-   npm install
-   ```
-
-3. Запустіть локальний сервер розробки (Dev Server з гарячим перезавантаженням):
-   ```bash
-   npm run dev
-   ```
-   Гра буде доступна за адресою `http://localhost:5173`.
-
-4. Збірка для продакшену (Build for Production):
-   ```bash
-   npm run build
-   ```
-   Готові оптимізовані файли з'являться у папці `dist/`. Для перевірки зібраної версії можна використати команду `npm run preview`.
+Built for the [University Cup / UCUP 2026](https://ucup.org.ua/?lang=en).
